@@ -130,6 +130,41 @@ static std::string enMinuscules(std::string s) {
     return s;
 }
 
+const Employe* GestionnaireEmployes::rechercherParMatricule(const std::string& matricule) const {
+    auto it = std::find_if(employes_.begin(), employes_.end(), [&](const auto& p) {
+        return p.second.getMatricule() == matricule;
+    });
+    return it == employes_.end() ? nullptr : &it->second;
+}
+
+const Employe* GestionnaireEmployes::rechercherParCin(const std::string& cin) const {
+    auto it = std::find_if(employes_.begin(), employes_.end(), [&](const auto& p) {
+        return p.second.getCin() == cin;
+    });
+    return it == employes_.end() ? nullptr : &it->second;
+}
+
+void GestionnaireEmployes::modifierCoordonnees(int id, const std::string& email,
+                                              const std::string& telephone) {
+    Employe& e = trouver(id);
+
+    std::vector<std::string> err;
+    if (!emailValide(email)) err.push_back("email invalide");
+    if (!telephoneValide(telephone)) err.push_back("telephone invalide (8-15 chiffres, '+' optionnel)");
+    if (!err.empty()) throw DonneesInvalides(err);
+
+    Employe copie = e;
+    e.setEmail(email);
+    e.setTelephone(telephone);
+    e.ajouterHistorique("Modification des coordonnees (email / telephone)");
+    try {
+        sauvegarder();
+    } catch (...) {
+        e = copie;
+        throw;
+    }
+}
+
 std::vector<const Employe*> GestionnaireEmployes::rechercherParNom(const std::string& motif) const {
     std::vector<const Employe*> res;
     const std::string m = enMinuscules(motif);
