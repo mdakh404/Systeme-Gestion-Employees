@@ -1,9 +1,9 @@
 #include "GestionnaireFichiers.h"
 #include "Exceptions.h"
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <iomanip>
-#include <filesystem>
 
 static std::vector<std::string> decouper(const std::string& s, char sep) {
     std::vector<std::string> out;
@@ -40,9 +40,9 @@ static void ecrireFichier(const std::string& chemin, const std::string& contenu)
         out.flush();
         if (!out) throw ErreurFichier("echec d'ecriture dans " + tmp);
     }
-    std::error_code ec;
-    std::filesystem::rename(tmp, chemin, ec);
-    if (ec) throw ErreurFichier("renommage impossible: " + ec.message());
+    std::remove(chemin.c_str());
+    if (std::rename(tmp.c_str(), chemin.c_str()) != 0)
+        throw ErreurFichier("renommage impossible: " + chemin);
 }
 
 // ------------------------------- Employes -------------------------------

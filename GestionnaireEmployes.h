@@ -32,6 +32,9 @@ public:
     const Employe* rechercher(int id) const;              // nullptr si absent
     Employe& trouver(int id);                             // throws EmployeIntrouvable
     std::vector<const Employe*> rechercherParNom(const std::string& motif) const;
+    const Employe* rechercherParMatricule(const std::string& matricule) const;
+    const Employe* rechercherParCin(const std::string& cin) const;
+    void modifierCoordonnees(int id, const std::string& email, const std::string& telephone);
 
     std::vector<Employe> lister() const;                  // tries par id
     const std::vector<std::string>& historique(int id) const; // throws EmployeIntrouvable
