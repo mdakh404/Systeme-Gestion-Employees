@@ -1,0 +1,5 @@
+1;101;2026-12-01;2026-12-05;Annuel;Acceptée
+2;102;2026-12-10;2026-12-12;Maladie;En attente
+3;101;2027-01-15;2027-01-20;Sans solde;En attente
+4;1;2026-08-01;2026-09-15;Annuel;En attente
+5;104;2027-03-10;2027-03-15;Annuel;Acceptée
