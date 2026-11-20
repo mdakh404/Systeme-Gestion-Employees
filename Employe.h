@@ -5,7 +5,7 @@
 #include "Salaire.h"
 #include "Date.h"
 
-// Donnees saisies pour creer / modifier un employe (venant du menu console)
+// Donnees necessaires a la creation ou a la modification d'un employe.
 struct DonneesEmploye {
     std::string nom, prenom, cin, email, telephone;
     Date dateNaissance;
@@ -30,21 +30,17 @@ public:
 
     // Modification (appelee par GestionnaireEmployes apres validation)
     void modifierInformations(const DonneesEmploye& d);
+    void modifierStatut(const std::string& statut);
 
     // Affectations : utilisees par les gestionnaires Departements / Postes
     void affecterDepartement(int idDepartement);
     void affecterPoste(int idPoste);
-
-    // Utilises uniquement au chargement depuis le fichier (sans ecrire l'historique)
-    void setIdDepartementBrut(int id) { idDepartement_ = id; }
-    void setIdPosteBrut(int id) { idPoste_ = id; }
 
     // Anciennete en annees completes (utile pour l'equipe Salaires)
     int anciennete(const Date& reference = Date::aujourdhui()) const;
 
     // Historique
     void ajouterHistorique(const std::string& evenement);
-    void setHistorique(const std::vector<std::string>& h) { historique_ = h; }
     const std::vector<std::string>& getHistorique() const { return historique_; }
 
     // Getters

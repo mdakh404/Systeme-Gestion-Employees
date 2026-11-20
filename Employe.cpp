@@ -29,6 +29,11 @@ void Employe::modifierInformations(const DonneesEmploye& d) {
     ajouterHistorique("Modification des informations");
 }
 
+void Employe::modifierStatut(const std::string& statut) {
+    statut_ = statut;
+    ajouterHistorique("Changement de statut: " + statut);
+}
+
 void Employe::affecterDepartement(int idDepartement) {
     idDepartement_ = idDepartement;
     ajouterHistorique(idDepartement == 0 ? "Retrait du departement"
