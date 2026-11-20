@@ -1,7 +1,5 @@
 *.exe
 *.o
-*.csv
-*.tmp
 bin/
 obj/
 *.cbp
