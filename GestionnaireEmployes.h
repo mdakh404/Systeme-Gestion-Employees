@@ -1,48 +1,39 @@
 #pragma once
+#include <cstddef>
 #include <map>
 #include <string>
 #include <vector>
 #include "Employe.h"
-#include "Exceptions.h"
-#include "IPersistanceEmployes.h"
 
-// Couche logique metier : operations CRUD sur les employes.
-// Utilise std::map (recherche par id en O(log n)) et l'interface de persistance.
+// Logique metier des employes, conservee en memoire.
 class GestionnaireEmployes {
     std::map<int, Employe> employes_;
-    IPersistanceEmployes& persistance_;
     int prochainId_ = 1;
 
     static constexpr int AGE_MIN_EMBAUCHE = 18;   // regle metier modifiable
 
     void valider(const DonneesEmploye& d) const;
     void verifierCinUnique(const std::string& cin, int idIgnore = 0) const;
-    void sauvegarder();
     static std::string fabriquerMatricule(int id);
 
 public:
-    explicit GestionnaireEmployes(IPersistanceEmployes& persistance);
+    int ajouter(const DonneesEmploye& d);
+    void modifier(int id, const DonneesEmploye& d);
+    void supprimer(int id);
 
-    void charger();                                       // lit le fichier
-
-    int ajouter(const DonneesEmploye& d);                 // retourne l'id cree
-    void modifier(int id, const DonneesEmploye& d);       // throws EmployeIntrouvable
-    void supprimer(int id);                               // throws EmployeIntrouvable
-
-    const Employe* rechercher(int id) const;              // nullptr si absent
-    Employe& trouver(int id);                             // throws EmployeIntrouvable
+    const Employe* rechercher(int id) const;
+    Employe& trouver(int id);
     std::vector<const Employe*> rechercherParNom(const std::string& motif) const;
+    const Employe* rechercherParCin(const std::string& cin) const;
+    const Employe* rechercherParMatricule(const std::string& matricule) const;
+    void modifierStatut(int id, const std::string& statut);
 
-    std::vector<Employe> lister() const;                  // tries par id
-    const std::vector<std::string>& historique(int id) const; // throws EmployeIntrouvable
+    std::vector<Employe> lister() const;
+    const std::vector<std::string>& historique(int id) const;
     std::size_t nombre() const { return employes_.size(); }
 
-    // ---- Relation Employe -> Departement (0 = non affecte) ----
-    // L'appelant (gestion des departements) verifie que le departement existe.
-    void affecterDepartement(int idEmploye, int idDepartement);  // throws EmployeIntrouvable
+    // L'identifiant 0 signifie que l'employe n'est pas affecte.
+    void affecterDepartement(int idEmploye, int idDepartement);
     std::vector<const Employe*> employesDuDepartement(int idDepartement) const;
-    std::size_t effectifDepartement(int idDepartement) const;    // pour "supprimer si vide"
-
-    // Pour les autres modules (Departements / Postes) : sauvegarde apres affectation
-    void enregistrerModifications() { sauvegarder(); }
+    std::size_t effectifDepartement(int idDepartement) const;
 };
