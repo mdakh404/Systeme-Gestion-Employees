@@ -98,7 +98,7 @@ void GestionnaireEmployes::modifier(int id, const DonneesEmploye& d) {
         throw;
     }
 }
-
+ 
 void GestionnaireEmployes::supprimer(int id) {
     auto it = employes_.find(id);
     if (it == employes_.end()) throw EmployeIntrouvable(id);
