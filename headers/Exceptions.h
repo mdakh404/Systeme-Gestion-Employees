@@ -33,8 +33,3 @@ public:
         : ExceptionEmploye(joindre(e)), erreurs_(e) {}
     const std::vector<std::string>& erreurs() const { return erreurs_; }
 };
-
-class ErreurFichier : public ExceptionEmploye {
-public:
-    explicit ErreurFichier(const std::string& msg) : ExceptionEmploye("Erreur fichier: " + msg) {}
-};

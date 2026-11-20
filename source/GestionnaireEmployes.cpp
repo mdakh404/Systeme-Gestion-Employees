@@ -138,6 +138,23 @@ void GestionnaireEmployes::modifierStatut(int id, const std::string& statut) {
     e.modifierStatut(statut);
 }
 
+void GestionnaireEmployes::modifierCoordonnees(int id, const std::string& email,
+                                               const std::string& telephone) {
+    Employe& e = trouver(id);
+
+    std::vector<std::string> erreurs;
+    if (!Validation::emailValide(email)) erreurs.push_back("email invalide");
+    if (!Validation::telephoneValide(telephone))
+        erreurs.push_back("telephone invalide (8-15 chiffres, '+' optionnel)");
+    if (!erreurs.empty()) throw DonneesInvalides(erreurs);
+
+    if (e.getEmail() == email && e.getTelephone() == telephone) return;
+
+    e.setEmail(email);
+    e.setTelephone(telephone);
+    e.ajouterHistorique("Modification des coordonnees (email / telephone)");
+}
+
 std::vector<Employe> GestionnaireEmployes::lister() const {
     std::vector<Employe> res;
     res.reserve(employes_.size());

@@ -27,6 +27,7 @@ public:
     const Employe* rechercherParCin(const std::string& cin) const;
     const Employe* rechercherParMatricule(const std::string& matricule) const;
     void modifierStatut(int id, const std::string& statut);
+    void modifierCoordonnees(int id, const std::string& email, const std::string& telephone);
 
     std::vector<Employe> lister() const;
     const std::vector<std::string>& historique(int id) const;
