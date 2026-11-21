@@ -20,8 +20,8 @@ static void titre(const std::string& t) {
     std::cout << "\n========== " << t << " ==========\n";
 }
 
-EspaceEmploye::EspaceEmploye(GestionnaireEmployes& gestion)
-    : gestion_(gestion) {}
+EspaceEmploye::EspaceEmploye(GestionnaireEmployes& gestion, MenuDemandes& demandes)
+    : gestion_(gestion), demandes_(demandes) {}
 
 void EspaceEmploye::executer() {
     while (true) {
@@ -131,6 +131,14 @@ void EspaceEmploye::modifierCoordonnees() {
     }
 }
 
+void EspaceEmploye::deposerDemande() {
+    demandes_.deposerDemande(idConnecte_);
+}
+
+void EspaceEmploye::mesDemandes() const {
+    demandes_.consulterMesDemandes(idConnecte_);
+}
+
 void EspaceEmploye::menuConnecte() {
     while (idConnecte_ != 0) {
         const Employe& e = employeConnecte();
@@ -140,6 +148,8 @@ void EspaceEmploye::menuConnecte() {
                   << "  3. Consulter mes informations professionnelles\n"
                   << "  4. Consulter mon departement\n"
                   << "  5. Modifier mon email et mon telephone\n"
+                  << "  6. Deposer une demande administrative\n"
+                  << "  7. Consulter mes demandes administratives\n"
                   << "  0. Se deconnecter\n";
         std::string choix = lireLigne("Choix : ");
 
@@ -150,6 +160,8 @@ void EspaceEmploye::menuConnecte() {
             else if (choix == "3") afficherInfosProfessionnelles();
             else if (choix == "4") afficherDepartement();
             else if (choix == "5") modifierCoordonnees();
+            else if (choix == "6") deposerDemande();
+            else if (choix == "7") mesDemandes();
             else std::cout << "Choix invalide.\n";
         } catch (const std::exception& ex) {
             std::cout << "Erreur : " << ex.what() << "\n";

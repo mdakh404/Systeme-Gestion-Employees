@@ -1,5 +1,9 @@
 #include "EspaceEmploye.h"
+#include "EspaceRH.h"
 #include "GestionnaireEmployes.h"
+#include "GestionnaireDemandes.h"
+#include "GestionnaireFichiersDemandes.h"
+#include "MenuDemandes.h"
 #include "admin/EspaceAdmin.h"
 
 #include <exception>
@@ -8,6 +12,16 @@
 
 int main() {
     GestionnaireEmployes gestion;
+    GestionnaireDemandes gestionDemandes;
+    GestionnaireFichiersDemandes fichiersDemandes;
+    MenuDemandes menuDemandes(gestionDemandes, fichiersDemandes);
+
+    // Chargement des demandes administratives depuis le fichier
+    try {
+        gestionDemandes.charger(fichiersDemandes.lireDemandes());
+    } catch (const std::exception& ex) {
+        std::cerr << "Attention : " << ex.what() << "\n";
+    }
 
     while (true) {
         std::cout << "\n========== Gestion des employes ==========\n"
@@ -26,9 +40,10 @@ int main() {
                 EspaceAdmin admin(gestion);
                 admin.menuAdmin();
             } else if (choix == "2") {
-                std::cout << "Espace Responsable RH : a integrer.\n";
+                EspaceRH rh(gestion, menuDemandes);
+                rh.executer();
             } else if (choix == "3") {
-                EspaceEmploye espace(gestion);
+                EspaceEmploye espace(gestion, menuDemandes);
                 espace.executer();
             } else {
                 std::cout << "Choix invalide.\n";
