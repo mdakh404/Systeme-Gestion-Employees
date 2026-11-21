@@ -1,6 +1,7 @@
 # Systeme-Gestion-Employees
 Employee Management System (EMS) built using C++.
-### Prime service `Bonification`
+> It will be good if everyone can make a table like this to describe the functions of their service. In order to make it easier for integration and testing.
+### 1.Prime service `Bonification`
  A service that calculates bonuses for employees : 
 
 | Function | Description | Input | Output |
