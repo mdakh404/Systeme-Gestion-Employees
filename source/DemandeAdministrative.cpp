@@ -44,6 +44,11 @@ void DemandeAdministrative::definirStatut(const std::string& statut) {
     statut_ = statut;
 }
 
+// Rollback apres un echec de sauvegarde : restaure le statut precedent.
+void DemandeAdministrative::restaurerStatut(const std::string& statut) {
+    if (statutValide(statut)) statut_ = statut;
+}
+
 std::vector<std::string> DemandeAdministrative::typesProposes() {
     return {"Attestation de travail",
             "Changement de poste",

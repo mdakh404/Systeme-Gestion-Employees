@@ -4,36 +4,46 @@ This guide is for students who will extend the project. It explains the current 
 
 ## Current project status
 
-The application is a C++17 console program. Employee data is stored in memory only and is lost when the program exits. There is no file storage, database, or automated test suite.
+The application is a C++17 console program. Employee data is stored in memory only and is lost when the program exits. Administrative requests are additionally persisted to `data/demandes.txt`.
 
 - The administrator space can add, edit, delete, search, view, and list employees.
-- Employees can sign in using a matricule or CIN, view their profile, and change their email or telephone.
-- The HR manager space is not implemented; its main-menu entry is a placeholder.
+- Employees can sign in using a matricule or CIN, view their profile, change their email or telephone, and deposit or consult their own administrative requests.
+- The HR manager space (`EspaceRH`) consults and processes administrative requests.
+- Requests follow the lifecycle `En attente` → `Acceptee` / `Refusee`; a decision is final.
 - A `Departement` class exists, but there is no department manager or department registry.
 - `Salaire` stores base salary and its change history; payroll calculations are not implemented.
 
 ## Build and run on Windows
 
-The following command works with GCC/MinGW from PowerShell. It compiles the current application sources:
+The following command works with GCC/MinGW from PowerShell. It compiles every source file of the project:
 
 ```powershell
 g++ -std=c++17 -Wall -Wextra -pedantic `
   -Iheaders -Iheaders\admin -Iheaders\espaceEmploye `
-  source\Date.cpp source\Departement.cpp source\Employe.cpp `
-  source\GestionnaireEmployes.cpp source\Personne.cpp source\Validation.cpp `
-  source\admin\EspaceAdmin.cpp source\espaceEmploye\EspaceEmploye.cpp `
-  source\main.cpp -o GestionEmployes.exe
+  source\*.cpp source\admin\*.cpp source\espaceEmploye\*.cpp `
+  -o GestionEmployes.exe
 
 .\GestionEmployes.exe
+```
+
+Under Linux (Bash):
+
+```bash
+g++ -std=c++17 -Wall -Wextra -pedantic \
+  -Iheaders -Iheaders/admin -Iheaders/espaceEmploye \
+  source/*.cpp source/admin/*.cpp source/espaceEmploye/*.cpp \
+  -o GestionEmployes
+
+./GestionEmployes
 ```
 
 In Visual Studio Code or another IDE, include the same `.cpp` files and add `headers`, `headers\admin`, and `headers\espaceEmploye` to the header search paths. The executable is a build artifact and should not be committed.
 
 ## How the code is organized
 
-The program entry point is `source/main.cpp`. It creates one `GestionnaireEmployes` and routes choices to the administrator or employee console space. The HR choice is currently a placeholder.
+The program entry point is `source/main.cpp`. It creates one `GestionnaireEmployes`, one `GestionnaireDemandes`, one `GestionnaireFichiersDemandes` and one `MenuDemandes`, then routes choices to the administrator, HR, or employee console space.
 
-Keep console input and display in the `Espace...` classes. Put reusable employee rules and data changes in `GestionnaireEmployes` and the domain classes. This prevents different menu spaces from keeping separate copies of employees or applying different validation rules.
+Keep console input and display in the `Espace...` and `Menu...` classes. Put reusable rules and data changes in the `Gestionnaire...` classes and the domain classes. This prevents different menu spaces from keeping separate copies of the data or applying different validation rules.
 
 ## Main classes and their methods
 
@@ -77,7 +87,7 @@ Declared in `headers/admin/EspaceAdmin.h` and implemented in `source/admin/Espac
 
 Declared in `headers/espaceEmploye/EspaceEmploye.h` and implemented in `source/espaceEmploye/EspaceEmploye.cpp`. It provides self-service for one employee during the current program run.
 
-- `EspaceEmploye(gestion)` connects the space to the shared employee manager.
+- `EspaceEmploye(gestion, demandes)` connects the space to the shared employee manager and to the administrative-requests menu.
 - `executer()` starts the sign-in and return menu loop.
 - `connecter()` *(private)* looks up an employee by matricule or CIN. This is identifier lookup, not password authentication.
 - `menuConnecte()` *(private)* displays actions for the signed-in employee.
@@ -86,9 +96,54 @@ Declared in `headers/espaceEmploye/EspaceEmploye.h` and implemented in `source/e
 - `afficherInfosProfessionnelles()` *(private)* displays matricule, hiring date, status, and seniority.
 - `afficherDepartement()` *(private)* displays the department ID or that the employee is unassigned.
 - `modifierCoordonnees()` *(private)* collects email/telephone changes and calls the manager's validated method.
+- `deposerDemande()` *(private)* delegates to `MenuDemandes::deposerDemande` for the signed-in employee.
+- `mesDemandes()` *(private)* delegates to `MenuDemandes::consulterMesDemandes`.
 - `deconnecter()` *(private)* clears the current employee ID.
 
-To try this space, first add an employee from the administrator menu, then sign in during the same run. Closing the program clears all employee records.
+To try this space, first add an employee from the administrator menu, then sign in during the same run. Closing the program clears all employee records; administrative requests stay in `data/demandes.txt`.
+
+### `EspaceRH`
+
+Declared in `headers/EspaceRH.h` and implemented in `source/EspaceRH.cpp`. This is the HR console space. It currently offers request processing only; other HR features will be added by another developer.
+
+- `EspaceRH(gestion, demandes)` connects the space to the shared employee manager and to the administrative-requests menu.
+- `executer()` starts the menu loop.
+- `menuConnecte()` *(private)* displays the HR menu and dispatches to `MenuDemandes`.
+
+### `MenuDemandes`
+
+Declared in `headers/MenuDemandes.h` and implemented in `source/MenuDemandes.cpp`. It is the console layer of the administrative-requests module and contains no business rules.
+
+- `deposerDemande(idEmploye)` collects the request type and description, creates the request, and saves it to disk.
+- `consulterMesDemandes(idEmploye)` displays the requests of one employee.
+- `consulterDemandes()` displays all requests or only those awaiting a decision.
+- `traiterDemande()` lists pending requests, then accepts or refuses one by ID.
+
+### `GestionnaireDemandes`
+
+Declared in `headers/GestionnaireDemandes.h` and implemented in `source/GestionnaireDemandes.cpp`. It holds requests in memory and applies the request rules.
+
+- `creerDemande(donnees)` validates input and creates a request with the status `En attente`.
+- `traiterDemande(id, decision)` accepts or refuses a pending request. It throws `DemandeIntrouvable` if the ID is unknown and `DemandeDejaTraitee` if a decision was already taken.
+- `rechercher(id)` returns a pointer or `nullptr`.
+- `lister()`, `listerParEmploye(idEmploye)`, and `listerEnAttente()` return request copies.
+- `charger(donnees)` rebuilds the in-memory state from the file loaded at start-up.
+
+### `GestionnaireFichiersDemandes`
+
+Declared in `headers/GestionnaireFichiersDemandes.h` and implemented in `source/GestionnaireFichiersDemandes.cpp`. It is the persistence layer for requests.
+
+- `lireDemandes()` reads `data/demandes.txt` and returns an empty vector when the file is missing. Malformed lines, non-positive IDs and trailing characters are rejected.
+- `ecrireDemandes(demandes)` writes the whole file. It writes to a temporary file first and renames it, so an interrupted write does not destroy the previous data.
+
+### `DemandeAdministrative`
+
+Declared in `headers/DemandeAdministrative.h` and implemented in `source/DemandeAdministrative.cpp`.
+
+- `DemandeAdministrative(id, donnees)` creates a request with the status `En attente`.
+- `definirStatut(statut)` moves the request forward and throws `DemandeDejaTraitee` once a decision was taken.
+- `estEnAttente()`, `afficherInfos()`, and the getters expose the state.
+- `statutValide(statut)` and `typesProposes()` are static helpers.
 
 ### `Employe` and `DonneesEmploye`
 

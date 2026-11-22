@@ -10,6 +10,55 @@
 using namespace std;
 
 // ==========================================
+// HELPERS DE SAISIE SURE
+// HIGH-003 : evite les variables non initialisées
+// MED-001  : rejette les suffixes parasites ("7.9abc")
+// ==========================================
+
+namespace {
+
+// Lit un entier strict. Retourne false si la saisie est invalide.
+bool lireEntier(const string& prompt, int& sortie) {
+    cout << prompt;
+    if (!(cin >> sortie)) {
+        if (cin.eof()) return false;   // fin de flux : ne pas bloquer
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return false;
+    }
+    // Reject "1abc" : the whole line must be consumed
+    char restant;
+    if (cin.get(restant)) {
+        if (restant != '\n') {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return false;
+        }
+    }
+    return true;
+}
+
+// Lit un double strict. Retourne false si la saisie est invalide.
+bool lireDouble(const string& prompt, double& sortie) {
+    cout << prompt;
+    if (!(cin >> sortie)) {
+        if (cin.eof()) return false;
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        return false;
+    }
+    char restant;
+    if (cin.get(restant)) {
+        if (restant != '\n') {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
+// ==========================================
 // CONSTRUCTEUR
 // ==========================================
 
@@ -39,9 +88,20 @@ void EspaceAdmin::menuAdmin() {
         cout << "========================================\n";
 
         cout << "Votre choix : ";
-        cin >> choix;
 
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        if (!(cin >> choix)) {
+            // EOF ou saisie non numerique
+            if (cin.eof()) {
+                cout << "\nFin de saisie. Retour au menu principal.\n";
+                return;
+            }
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "\nSaisie invalide.\n";
+            choix = -1;
+        } else {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        }
 
         switch (choix) {
 
@@ -120,10 +180,10 @@ void EspaceAdmin::ajouterEmploye() {
         donnees.dateNaissance = Date::fromString(naissance);
         donnees.dateEmbauche = Date::fromString(embauche);
 
-        cout << "Salaire de base : ";
-        cin >> donnees.salaireBase;
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        if (!lireDouble("Salaire de base : ", donnees.salaireBase)) {
+            cout << "\nSalaire invalide. Ajout annule.\n";
+            return;
+        }
 
         donnees.statut = "Actif";
 
@@ -147,14 +207,14 @@ void EspaceAdmin::ajouterEmploye() {
 
 void EspaceAdmin::modifierEmploye() {
 
-    int id;
+    int id = 0;
 
     cout << "\n========== MODIFIER UN EMPLOYE ==========\n";
 
-    cout << "Entrer l'identifiant de l'employe : ";
-    cin >> id;
-
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    if (!lireEntier("Entrer l'identifiant de l'employe : ", id)) {
+        cout << "\nIdentifiant invalide.\n";
+        return;
+    }
 
     try {
 
@@ -200,10 +260,10 @@ void EspaceAdmin::modifierEmploye() {
         donnees.dateNaissance = Date::fromString(naissance);
         donnees.dateEmbauche = Date::fromString(embauche);
 
-        cout << "Nouveau salaire de base : ";
-        cin >> donnees.salaireBase;
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        if (!lireDouble("Nouveau salaire de base : ", donnees.salaireBase)) {
+            cout << "\nSalaire invalide. Modification annulee.\n";
+            return;
+        }
 
         cout << "Nouveau statut (Actif/Inactif) : ";
         getline(cin, donnees.statut);
@@ -227,13 +287,15 @@ void EspaceAdmin::modifierEmploye() {
 
 void EspaceAdmin::supprimerEmploye() {
 
-    int id;
+    int id = 0;
     char confirmation;
 
     cout << "\n========== SUPPRIMER UN EMPLOYE ==========\n";
 
-    cout << "Entrer l'identifiant de l'employe : ";
-    cin >> id;
+    if (!lireEntier("Entrer l'identifiant de l'employe : ", id)) {
+        cout << "\nIdentifiant invalide.\n";
+        return;
+    }
 
     try {
 
@@ -323,12 +385,14 @@ void EspaceAdmin::rechercherEmploye() {
 
 void EspaceAdmin::consulterEmploye() {
 
-    int id;
+    int id = 0;
 
     cout << "\n========== CONSULTER UN EMPLOYE ==========\n";
 
-    cout << "Entrer l'identifiant de l'employe : ";
-    cin >> id;
+    if (!lireEntier("Entrer l'identifiant de l'employe : ", id)) {
+        cout << "\nIdentifiant invalide.\n";
+        return;
+    }
 
     try {
 

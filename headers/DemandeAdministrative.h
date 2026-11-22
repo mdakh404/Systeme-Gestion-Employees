@@ -36,6 +36,7 @@ public:
 
     // Une demande traitee ne peut plus changer de statut (throws ExceptionDemande)
     void definirStatut(const std::string& statut);
+    void restaurerStatut(const std::string& statut);   // rollback interne
     bool estEnAttente() const { return statut_ == STATUT_EN_ATTENTE; }
 
     // Getters

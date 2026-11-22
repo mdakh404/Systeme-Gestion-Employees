@@ -1,4 +1,5 @@
 #include "EspaceRH.h"
+#include <ios>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -8,13 +9,14 @@ namespace {
 std::string lireLigne(const std::string& prompt) {
     std::cout << prompt;
     std::string s;
-    std::getline(std::cin, s);
+    if (!std::getline(std::cin, s)) throw std::ios_base::failure("fin de saisie");
     return s;
 }
 
 void pause() {
     std::cout << "\nAppuyez sur Entree pour continuer...";
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    if (!std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'))
+        throw std::ios_base::failure("fin de saisie");
 }
 
 void titre(const std::string& t) {
@@ -37,7 +39,13 @@ void EspaceRH::menuConnecte() {
                   << "  2. Traiter une demande administrative\n"
                   << "  0. Retour\n";
 
-        std::string choix = lireLigne("Choix : ");
+        std::string choix;
+        try {
+            choix = lireLigne("Choix : ");
+        } catch (const std::ios_base::failure&) {
+            std::cout << "\nFin de saisie. Retour au menu principal.\n";
+            return;
+        }
 
         try {
             if (choix == "0") return;
@@ -49,10 +57,18 @@ void EspaceRH::menuConnecte() {
             } else {
                 std::cout << "Choix invalide.\n";
             }
+        } catch (const std::ios_base::failure&) {
+            std::cout << "\nFin de saisie. Retour au menu principal.\n";
+            return;
         } catch (const std::exception& ex) {
             std::cout << "Erreur : " << ex.what() << "\n";
         }
 
-        pause();
+        try {
+            pause();
+        } catch (const std::ios_base::failure&) {
+            std::cout << "\nFin de saisie.\n";
+            return;
+        }
     }
 }

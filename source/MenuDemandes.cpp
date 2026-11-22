@@ -1,5 +1,6 @@
 #include "MenuDemandes.h"
 #include "ExceptionsDemandes.h"
+#include <ios>
 #include <iostream>
 #include <limits>
 
@@ -14,7 +15,7 @@ void MenuDemandes::sauvegarder() const {
 std::string MenuDemandes::lireLigne(const std::string& prompt) {
     std::cout << prompt;
     std::string s;
-    std::getline(std::cin, s);
+    if (!std::getline(std::cin, s)) throw std::ios_base::failure("fin de saisie");
     return s;
 }
 
@@ -72,7 +73,13 @@ void MenuDemandes::deposerDemande(int idEmploye) {
 
     try {
         int id = gestion_.creerDemande(donnees);
-        sauvegarder();
+        try {
+            sauvegarder();
+        } catch (...) {
+            // MED-002 : rollback, la demande ne reste pas en memoire
+            gestion_.supprimerDemande(id);
+            throw;
+        }
 
         std::cout << "\nDemande enregistree (id = " << id << ").\n";
         std::cout << "Statut : " << DemandeAdministrative::STATUT_EN_ATTENTE << "\n";
@@ -114,10 +121,20 @@ void MenuDemandes::traiterDemande() {
     std::string idSaisi = lireLigne("Identifiant de la demande : ");
     std::string decision = lireLigne("Decision (A = Accepter / R = Refuser) : ");
 
+    // MED-001 : lecture stricte, toute la chaine doit etre un entier positif
     int id = 0;
-    try {
-        id = std::stoi(idSaisi);
-    } catch (const std::exception&) {
+    if (idSaisi.empty() || idSaisi[0] < '0' || idSaisi[0] > '9') {
+        std::cout << "Identifiant invalide.\n";
+        return;
+    }
+    for (char c : idSaisi) {
+        if (c < '0' || c > '9') {
+            std::cout << "Identifiant invalide.\n";
+            return;
+        }
+        id = id * 10 + (c - '0');
+    }
+    if (id <= 0) {
         std::cout << "Identifiant invalide.\n";
         return;
     }
@@ -133,8 +150,17 @@ void MenuDemandes::traiterDemande() {
     }
 
     try {
+        const DemandeAdministrative* avant = gestion_.rechercher(id);
+        std::string statutAvant = avant ? avant->getStatut() : "";
+
         gestion_.traiterDemande(id, statut);
-        sauvegarder();
+        try {
+            sauvegarder();
+        } catch (...) {
+            // MED-002 : rollback, la decision n'est pas appliquee en memoire
+            gestion_.restaurerStatut(id, statutAvant);
+            throw;
+        }
 
         std::cout << "\nDemande " << id << " : " << statut << ".\n";
     } catch (const std::exception& ex) {

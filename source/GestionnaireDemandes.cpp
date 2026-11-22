@@ -69,6 +69,17 @@ std::vector<DemandeAdministrative> GestionnaireDemandes::listerEnAttente() const
     return res;
 }
 
+void GestionnaireDemandes::supprimerDemande(int id) {
+    demandes_.erase(id);
+}
+
+// Rollback uniquement : restaure le statut precedent apres un echec d'ecriture.
+void GestionnaireDemandes::restaurerStatut(int id, const std::string& statut) {
+    auto it = demandes_.find(id);
+    if (it == demandes_.end()) return;
+    it->second.restaurerStatut(statut);
+}
+
 void GestionnaireDemandes::charger(const std::vector<DemandeAdministrative>& donnees) {
     demandes_.clear();
     prochainId_ = 1;

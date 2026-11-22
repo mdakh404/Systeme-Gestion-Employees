@@ -25,6 +25,10 @@ public:
     std::vector<DemandeAdministrative> listerParEmploye(int idEmploye) const;
     std::vector<DemandeAdministrative> listerEnAttente() const;
 
+    // Annulation (rollback) si l'ecriture sur disque echoue
+    void supprimerDemande(int id);
+    void restaurerStatut(int id, const std::string& statut);
+
     std::size_t nombre() const { return demandes_.size(); }
 
     // Reconstitution de l'etat a partir du fichier (appelee au demarrage)

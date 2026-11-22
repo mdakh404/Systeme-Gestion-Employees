@@ -1,5 +1,6 @@
 #include "EspaceEmploye.h"
 #include "Exceptions.h"
+#include <ios>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -7,13 +8,14 @@
 static std::string lireLigne(const std::string& prompt) {
     std::cout << prompt;
     std::string s;
-    std::getline(std::cin, s);
+    if (!std::getline(std::cin, s)) throw std::ios_base::failure("fin de saisie");
     return s;
 }
 
 static void pause() {
     std::cout << "\nAppuyez sur Entree pour continuer...";
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    if (!std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'))
+        throw std::ios_base::failure("fin de saisie");
 }
 
 static void titre(const std::string& t) {
@@ -28,12 +30,26 @@ void EspaceEmploye::executer() {
         titre("Espace Employe");
         std::cout << "  1. Se connecter (matricule ou CIN)\n"
                   << "  0. Retour\n";
-        std::string choix = lireLigne("Choix : ");
+
+        std::string choix;
+        try {
+            choix = lireLigne("Choix : ");
+        } catch (const std::ios_base::failure&) {
+            std::cout << "\nFin de saisie. Retour au menu principal.\n";
+            return;
+        }
+
         if (choix == "0") return;
         if (choix == "1") {
-            if (connecter()) {
-                menuConnecte();
+            try {
+                if (connecter()) {
+                    menuConnecte();
+                    deconnecter();
+                }
+            } catch (const std::ios_base::failure&) {
+                std::cout << "\nFin de saisie. Retour au menu principal.\n";
                 deconnecter();
+                return;
             }
         } else {
             std::cout << "Choix invalide.\n";
@@ -151,7 +167,13 @@ void EspaceEmploye::menuConnecte() {
                   << "  6. Deposer une demande administrative\n"
                   << "  7. Consulter mes demandes administratives\n"
                   << "  0. Se deconnecter\n";
-        std::string choix = lireLigne("Choix : ");
+        std::string choix;
+        try {
+            choix = lireLigne("Choix : ");
+        } catch (const std::ios_base::failure&) {
+            std::cout << "\nFin de saisie. Deconnexion.\n";
+            return;
+        }
 
         try {
             if (choix == "0") return;
@@ -163,10 +185,19 @@ void EspaceEmploye::menuConnecte() {
             else if (choix == "6") deposerDemande();
             else if (choix == "7") mesDemandes();
             else std::cout << "Choix invalide.\n";
+        } catch (const std::ios_base::failure&) {
+            std::cout << "\nFin de saisie. Deconnexion.\n";
+            return;
         } catch (const std::exception& ex) {
             std::cout << "Erreur : " << ex.what() << "\n";
             return;
         }
-        pause();
+
+        try {
+            pause();
+        } catch (const std::ios_base::failure&) {
+            std::cout << "\nFin de saisie. Deconnexion.\n";
+            return;
+        }
     }
 }
