@@ -10,7 +10,6 @@ using namespace std;
 
 MenuConge::MenuConge(GestionnaireConges& gestionnaire, istream& entree)
     : gc(gestionnaire),
-      fichiers(),
       entree(entree)
 {
 }
@@ -294,7 +293,9 @@ void MenuConge::traiterDemandes()
     cout << "Duree demandee : " << duree << " jour(s)" << endl;
 
     if (it->Gettype() == "Annuel") {
-        int previsionnel = gc.soldeRestant(it->GetidEmploye()) - duree;
+        int annee = stoi(it->GetdateDebut().substr(0, 4));
+        int previsionnel = gc.soldeRestant(it->GetidEmploye(), annee)
+                         - gc.joursDansAnnee(*it, annee);
         cout << "Solde previsionnel : " << previsionnel << " / "
              << GestionnaireConges::QUOTA_ANNUEL << " jours" << endl;
         if (previsionnel < 0) {
@@ -317,7 +318,7 @@ void MenuConge::traiterDemandes()
 
 void MenuConge::consulterTousLesConges()
 {
-    vector<Conge> tous = fichiers.chargerTousLesConges();
+    vector<Conge> tous = gc.tousLesConges();
 
     cout << endl << "--- Tous les conges ---" << endl;
     if (tous.empty()) {

@@ -12,44 +12,40 @@ using namespace std;
 
 class MenuConge
 {
-    public:
-        
-        MenuConge(GestionnaireConges& gestionnaire, istream& entree = cin);
-        virtual ~MenuConge();
+public:
+    MenuConge(GestionnaireConges &gestionnaire, istream &entree = cin);
+    virtual ~MenuConge();
 
-        // Espace Employe : leve invalid_argument si idEmploye <= 0
-        void lancerEmploye(int idEmploye);
-        // Espace Responsable RH
-        void lancerRH();
+    // Espace Employe : leve invalid_argument si idEmploye <= 0
+    void lancerEmploye(int idEmploye);
+    // Espace Responsable RH
+    void lancerRH();
 
-        // en indicateur d'affichage : [ACCEPTEE], [REFUSEE] ou [EN ATTENTE]
-        static string indicateurStatut(const string& statut);
+    // en indicateur d'affichage : [ACCEPTEE], [REFUSEE] ou [EN ATTENTE]
+    static string indicateurStatut(const string &statut);
 
-    protected:
+protected:
+private:
+    GestionnaireConges &gc;
+    istream &entree;
 
-    private:
-        GestionnaireConges& gc;
-       
-        GestionnaireFichiersConge fichiers;
-        istream& entree;
+    bool lireTexte(const string &invite, string &texte);
+    bool lireEntier(const string &invite, int minimum, int maximum, int &valeur);
+    bool lireDate(const string &invite, string &date);
+    static bool formatDateOk(const string &date);
 
-        bool lireTexte(const string& invite, string& texte);
-        bool lireEntier(const string& invite, int minimum, int maximum, int& valeur);
-        bool lireDate(const string& invite, string& date);
-        static bool formatDateOk(const string& date);
+    void afficherTableau(const vector<Conge> &liste) const;
+    void afficherMenuEmploye() const;
+    void afficherMenuRH() const;
 
-        void afficherTableau(const vector<Conge>& liste) const;
-        void afficherMenuEmploye() const;
-        void afficherMenuRH() const;
+    //  Espace Employe
+    void deposerDemande(int idEmploye);
+    void consulterHistorique(int idEmploye);
 
-        //  Espace Employe
-        void deposerDemande(int idEmploye);
-        void consulterHistorique(int idEmploye);
-
-        // Espace RH 
-        void traiterDemandes();
-        void consulterTousLesConges();
-        void bilanEmploye();
+    // Espace RH
+    void traiterDemandes();
+    void consulterTousLesConges();
+    void bilanEmploye();
 };
 
-#endif 
+#endif

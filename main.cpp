@@ -31,11 +31,13 @@ static int executer()
             if (!getline(cin, idTexte)) {
                 break;
             }
-            try {
-                menu.lancerEmploye(stoi(idTexte));
+            bool numerique = !idTexte.empty() && idTexte.size() <= 9
+                && idTexte.find_first_not_of("0123456789") == string::npos;
+            if (!numerique || stoi(idTexte) <= 0) {
+                cout << "ID employe invalide (entier positif attendu)." << endl;
             }
-            catch (const exception&) {
-                cout << "ID employe invalide." << endl;
+            else {
+                menu.lancerEmploye(stoi(idTexte));
             }
         }
         else if (choix == 2) {

@@ -296,6 +296,67 @@ void testsRobustesse()
     verifier(leve, "B4 ID non numerique dans le fichier => runtime_error");
 }
 
+void testsRapportQA()
+{
+    cout << "\n=== Corrections du rapport QA ===" << endl;
+
+    // Q1 : le solde est calcule par annee civile
+    ecrireFichier("1;50;2026-03-01;2026-03-22;Annuel;Acceptée\n");   // 22 jours en 2026
+    {
+        GestionnaireConges gc;
+        verifier(gc.soldeRestant(50, 2026) == 0,  "Q1a 22 jours pris en 2026 => solde 2026 = 0");
+        verifier(gc.soldeRestant(50, 2027) == 22, "Q1b solde 2027 remis a 22");
+    }
+
+    // Q2 : un conge a cheval sur deux annees est ventile
+    ecrireFichier("1;51;2026-12-30;2027-01-02;Annuel;Acceptée\n");
+    {
+        GestionnaireConges gc;
+        verifier(gc.soldeRestant(51, 2026) == 20 && gc.soldeRestant(51, 2027) == 20,
+                 "Q2 conge a cheval : 2 jours en 2026, 2 jours en 2027");
+    }
+
+    // Q3 : fichier syntaxiquement correct mais semantiquement invalide => refus au demarrage
+    const char* invalides[] = {
+        "1;1;2026-12-05;2026-12-01;Annuel;Acceptée\n",   // dates inversees
+        "1;1;2026-02-31;2026-03-02;Annuel;Acceptée\n",   // date inexistante
+        "1;1;2026-12-01;2026-12-05;Foo;Acceptée\n",      // type inconnu
+        "1;1;2026-12-01;2026-12-05;Annuel;Bar\n",        // statut inconnu
+        "1;0;2026-12-01;2026-12-05;Annuel;Acceptée\n"    // employe invalide
+    };
+    int rejets = 0;
+    for (const char* ligne : invalides) {
+        ecrireFichier(ligne);
+        try { GestionnaireConges g; }
+        catch (const runtime_error&) { rejets++; }
+    }
+    verifier(rejets == 5, "Q3 5 types de lignes invalides rejetees au chargement");
+
+    // Q4 : echec d'ecriture disque => pas de demande fantome en memoire
+    ecrireFichier(DONNEES);
+    {
+        GestionnaireConges gc;
+        size_t avant = gc.tousLesConges().size();
+        fs::remove("data/conges.txt");
+        fs::create_directory("data/conges.txt");      // l'ecriture va echouer
+        bool leve = false;
+        try { gc.deposerDemande(104, "2030-01-01", "2030-01-03", "Annuel"); }
+        catch (const runtime_error&) { leve = true; }
+        verifier(leve && gc.tousLesConges().size() == avant, "Q4a depot : erreur levee + rollback memoire");
+
+        leve = false;
+        try { gc.traiterDemande(2, true); }
+        catch (const runtime_error&) { leve = true; }
+        bool toujoursEnAttente = false;
+        for (const Conge& c : gc.tousLesConges())
+            if (c.Getid() == 2) toujoursEnAttente = (c.Getstatut() == "En attente");
+        verifier(leve && toujoursEnAttente, "Q4b traitement : erreur levee + statut restaure");
+
+        fs::remove("data/conges.txt");
+    }
+    ecrireFichier(DONNEES);
+}
+
 int main()
 {
     fs::path ancienDossier = fs::current_path();
@@ -309,6 +370,7 @@ int main()
     testsRH();
     testsDemo();
     testsRobustesse();
+    testsRapportQA();
 
     fs::current_path(ancienDossier);
     fs::remove_all(dossierTest);

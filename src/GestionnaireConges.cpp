@@ -6,6 +6,9 @@
 #include <iterator>
 #include <cctype>
 #include <iomanip>
+#include <ctime>
+#include <cstdio>
+#include <string>
 
 using namespace std;
 
@@ -121,7 +124,13 @@ void GestionnaireConges::deposerDemande(
 
     conges.push_back(nouvelleDemande);
 
-    sauvegarderDansFichier();
+    try {
+        sauvegarderDansFichier();
+    }
+    catch (...) {
+        conges.pop_back();   // annule en memoire si l'ecriture disque echoue
+        throw;
+    }
 
     cout << "\nDemande deposee avec succes !" << endl;
     cout << "ID de la demande : " << nouvelId << endl;
@@ -246,12 +255,36 @@ void GestionnaireConges::traiterDemande(int idConge, bool accepter) {
             "Impossible d'accepter : chevauchement avec un conge deja accepte.");
     }
 
+    const string ancienStatut = it->Getstatut();
     it->Setstatut(accepter ? "Acceptée" : "Refusée");
 
-    sauvegarderDansFichier();
+    try {
+        sauvegarderDansFichier();
+    }
+    catch (...) {
+        it->Setstatut(ancienStatut);   // annule en memoire si l'ecriture disque echoue
+        throw;
+    }
 }
 
-int GestionnaireConges::soldeRestant(int idEmploye) const {
+int GestionnaireConges::joursDansAnnee(const Conge& c, int annee) const {
+
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%04d", annee);
+    const string a(buf);
+
+    long debut = max(joursDepuisEpoque(c.GetdateDebut()), joursDepuisEpoque(a + "-01-01"));
+    long fin   = min(joursDepuisEpoque(c.GetdateFin()),   joursDepuisEpoque(a + "-12-31"));
+
+    return fin >= debut ? (int)(fin - debut) + 1 : 0;
+}
+
+int GestionnaireConges::anneeCourante() {
+    time_t t = time(nullptr);
+    return localtime(&t)->tm_year + 1900;
+}
+
+int GestionnaireConges::soldeRestant(int idEmploye, int annee) const {
 
     int pris = 0;
 
@@ -259,7 +292,7 @@ int GestionnaireConges::soldeRestant(int idEmploye) const {
         if (c.GetidEmploye() == idEmploye
             && c.Gettype() == "Annuel"
             && estAcceptee(c.Getstatut())) {
-            pris += dureeJours(c);
+            pris += joursDansAnnee(c, annee);
         }
     }
 
@@ -319,13 +352,38 @@ void GestionnaireConges::afficherStatistiques(int idEmploye) const {
          << fixed << setprecision(1) << s.tauxAcceptation << " %" << endl;
 
     if (idEmploye != -1) {
-        cout << setw(28) << "Solde annuel restant" << ": "
-             << soldeRestant(idEmploye) << " / " << QUOTA_ANNUEL << " jours" << endl;
+        int annee = anneeCourante();
+        cout << setw(28) << ("Solde annuel restant " + to_string(annee)) << ": "
+             << soldeRestant(idEmploye, annee) << " / " << QUOTA_ANNUEL << " jours" << endl;
     }
 }
 
 void GestionnaireConges::chargerDepuisFichier() {
-    conges = fichiers.chargerTousLesConges();
+    vector<Conge> lus = fichiers.chargerTousLesConges();
+
+    for (const Conge& c : lus) {
+        const string& t = c.Gettype();
+        const string& s = c.Getstatut();
+
+        bool ok = c.Getid() > 0
+               && c.GetidEmploye() > 0
+               && dateValide(c.GetdateDebut())
+               && dateValide(c.GetdateFin())
+               && c.GetdateDebut() <= c.GetdateFin()
+               && (t == "Annuel" || t == "Maladie" || t == "Sans solde" || t == "Exceptionnel")
+               && (estEnAttente(s) || estAcceptee(s) || estRefusee(s));
+
+        if (!ok) {
+            throw runtime_error("Conge invalide dans le fichier (id " + to_string(c.Getid())
+                                + ") : verifiez dates, type et statut.");
+        }
+    }
+
+    conges = lus;
+}
+
+vector<Conge> GestionnaireConges::tousLesConges() const {
+    return conges;
 }
 
 void GestionnaireConges::sauvegarderDansFichier() const {

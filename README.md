@@ -9,7 +9,7 @@ Prérequis : `g++` (C++17) et `make`. À exécuter **depuis ce dossier** (le che
 ```bash
 make          # compile l'application et les tests
 make run      # lance l'application
-make test     # lance les 44 tests automatiques (attendu : "Echoues : 0")
+make test     # lance les 50 tests automatiques (attendu : "Echoues : 0")
 make clean
 ```
 
@@ -35,8 +35,10 @@ Données de départ : employés `101`, `102`, `104` et `1` ; demandes en attente
 | Chevauchement avec une demande *en attente* ou *acceptée* du même employé | Dépôt refusé |
 | Accepter une demande qui chevauche un congé déjà accepté | Refusé, statut inchangé |
 | Traiter une demande déjà traitée | Refusé |
-| Quota annuel | 22 jours ; seuls les congés **Annuel** acceptés le consomment ; alerte RH si dépassé |
+| Quota annuel | 22 jours **par année civile** ; seuls les congés **Annuel** acceptés le consomment (un congé à cheval sur 2 ans est réparti) ; alerte RH si dépassé |
 | Redémarrage de l'application | Toutes les données sont conservées |
+| Échec d'écriture du fichier (disque plein, lecture seule) | Erreur affichée, la demande n'apparaît pas dans l'historique |
+| ID employé non numérique (`12abc`, `7.9`, `+4`) | « ID employe invalide » |
 | Saisie invalide (lettres, vide, hors plage, négatif) | Message d'erreur, pas de plantage |
 
 ## Scénario de test conseillé
@@ -53,4 +55,4 @@ Données de départ : employés `101`, `102`, `104` et `1` ; demandes en attente
 `id;idEmploye;dateDebut;dateFin;type;statut`, une ligne par congé, par exemple :
 `1;101;2026-12-01;2026-12-05;Annuel;Acceptée`
 
-Le fichier est créé automatiquement s'il n'existe pas. Pour revenir aux données de départ, restaurez la copie d'origine du fichier. Si une ligne est invalide, l'application s'arrête avec un message clair (code de sortie 1) et ne modifie pas le fichier.
+Le fichier est créé automatiquement s'il n'existe pas. Pour revenir aux données de départ, restaurez la copie d'origine du fichier. Si une ligne est invalide (format, dates inversées ou inexistantes, type ou statut inconnu), l'application s'arrête avec un message clair (code de sortie 1) et ne modifie pas le fichier.

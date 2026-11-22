@@ -34,7 +34,10 @@ class GestionnaireConges
         vector<Conge> listerDemandesEnAttente() const;
         void traiterDemande(int idConge,bool accepter);
         int dureeJours(const Conge& c) const;
-        int soldeRestant(int idEmploye) const;
+        int soldeRestant(int idEmploye, int annee) const;
+        int joursDansAnnee(const Conge& c, int annee) const;
+        static int anneeCourante();
+        vector<Conge> tousLesConges() const;
         StatistiquesConges calculerStatistiques(int idEmploye=-1) const;
         void afficherStatistiques(int idEmploye=-1) const;
 
