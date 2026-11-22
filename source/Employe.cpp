@@ -1,3 +1,4 @@
+#include <iomanip>
 #include "Employe.h"
 #include <iostream>
 
@@ -13,7 +14,7 @@ void Employe::afficherInfos() const {
               << " | Statut: " << statut_
               << " | Departement: " << (idDepartement_ ? std::to_string(idDepartement_) : "-")
               << " | Poste: " << (idPoste_ ? std::to_string(idPoste_) : "-")
-              << " | Salaire de base: " << salaire_.getSalaireBase() << "\n";
+              << " | Salaire de base: " << std::fixed << std::setprecision(2) << salaire_.getSalaireBase() << std::defaultfloat << "\n";
 }
 
 void Employe::modifierInformations(const DonneesEmploye& d) {

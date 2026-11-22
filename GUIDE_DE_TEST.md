@@ -33,8 +33,8 @@ g++ -std=c++17 -Wall -Wextra -Iheaders -Iheaders/admin -Iheaders/espaceEmploye s
    - Téléphone : `0612345678`
    - Date de naissance (JJ/MM/AAAA) : `15/05/1990`
    - Date d'embauche (JJ/MM/AAAA) : `01/09/2018`
-   - Statut : `Actif`
    - Salaire de base : `8500`
+   *(Note : Le statut est automatiquement initialisé à "Actif" à la création).*
 4. Notez bien le matricule attribué (par ex. `EMP0001`) et l'ID (par ex. `1`).
 5. Tapez **`0`** pour revenir au menu principal.
 
@@ -77,4 +77,4 @@ g++ -std=c++17 -Wall -Wextra -Iheaders -Iheaders/admin -Iheaders/espaceEmploye s
 ---
 
 ## 3. Persistance des données
-Toutes les données validées (demandes, congés, absences, formations) sont automatiquement sauvegardées dans le dossier `data/` et rechargées au prochain démarrage.
+Toutes les données validées (**employés** dans `data/employes.txt`, **demandes** dans `data/demandes.txt`, **congés** dans `data/conges.txt`, **absences** dans `data/absences.txt` et **formations** dans `data/formations.txt`) sont automatiquement sauvegardées de façon atomique et rechargées au démarrage suivant.

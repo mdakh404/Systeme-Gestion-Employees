@@ -21,6 +21,11 @@
 int main() {
     // 1. Instanciation des gestionnaires métier
     GestionnaireEmployes gestion;
+    try {
+        gestion.chargerDepuisFichier("data/employes.txt");
+    } catch (const std::exception& ex) {
+        std::cerr << "Employes : " << ex.what() << "\n";
+    }
     GestionnaireDemandes gestionDemandes;
     GestionnaireFichiersDemandes fichiersDemandes;
     MenuDemandes menuDemandes(gestionDemandes, fichiersDemandes);
@@ -29,9 +34,14 @@ int main() {
     MenuConge menuConge(gestionConges);
 
     GestionnaireFichiersAbsences fichiersAbsences("data/absences.txt");
-    GestionnaireAbsences gestionAbsences = fichiersAbsences.chargerAbsences(
-        [&gestion](int id) { return gestion.rechercher(id) != nullptr; }
-    );
+    GestionnaireAbsences gestionAbsences([&gestion](int id) { return gestion.rechercher(id) != nullptr; });
+    try {
+        gestionAbsences = fichiersAbsences.chargerAbsences(
+            [&gestion](int id) { return gestion.rechercher(id) != nullptr; }
+        );
+    } catch (const std::exception& ex) {
+        std::cerr << "Absences : " << ex.what() << "\n";
+    }
     MenuAbsences menuAbsences(gestionAbsences, fichiersAbsences);
 
     PrimeService primeService(1, gestion);
@@ -92,6 +102,7 @@ int main() {
 
     // 4. Sauvegarde automatique avant fermeture
     try {
+        gestion.sauvegarderDansFichier("data/employes.txt");
         gestionConges.sauvegarderDansFichier();
         fichiersAbsences.sauvegarderAbsences(gestionAbsences);
         trainingService.saveToFile("data/formations.txt");

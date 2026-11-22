@@ -37,4 +37,8 @@ public:
     void affecterDepartement(int idEmploye, int idDepartement);
     std::vector<const Employe*> employesDuDepartement(int idDepartement) const;
     std::size_t effectifDepartement(int idDepartement) const;
+
+    // Persistance sur fichier
+    void chargerDepuisFichier(const std::string& chemin = "data/employes.txt");
+    void sauvegarderDansFichier(const std::string& chemin = "data/employes.txt") const;
 };

@@ -7,6 +7,9 @@
 #include <iomanip>
 #include <sstream>
 #include <utility>
+#include <fstream>
+#include <iostream>
+#include <filesystem>
 
 namespace {
 
@@ -187,4 +190,104 @@ std::size_t GestionnaireEmployes::effectifDepartement(int idDepartement) const {
         employes_.begin(), employes_.end(), [idDepartement](const auto& entree) {
             return entree.second.getIdDepartement() == idDepartement;
         }));
+}
+
+void GestionnaireEmployes::chargerDepuisFichier(const std::string& chemin) {
+    std::ifstream in(chemin);
+    if (!in.is_open()) return;
+
+    employes_.clear();
+    prochainId_ = 1;
+
+    std::string ligne;
+    int rejetees = 0;
+    while (std::getline(in, ligne)) {
+        if (ligne.empty() || ligne[0] == '#') continue;
+        if (!ligne.empty() && ligne.back() == '\r') ligne.pop_back();
+
+        std::vector<std::string> champs;
+        std::string champ;
+        std::istringstream ss(ligne);
+        while (std::getline(ss, champ, ';')) {
+            champs.push_back(champ);
+        }
+
+        if (champs.size() < 11) { ++rejetees; continue; }
+
+        try {
+            int id = std::stoi(champs[0]);
+            std::string matricule = champs[1];
+            DonneesEmploye d;
+            d.nom = champs[2];
+            d.prenom = champs[3];
+            d.cin = champs[4];
+            d.email = champs[5];
+            d.telephone = champs[6];
+            d.dateNaissance = Date::fromString(champs[7]);
+            d.dateEmbauche = Date::fromString(champs[8]);
+            d.statut = champs[9];
+            d.salaireBase = std::stod(champs[10]);
+
+            Employe e(id, matricule, d);
+            if (champs.size() >= 12) {
+                e.affecterDepartement(std::stoi(champs[11]));
+            }
+            if (champs.size() >= 13) {
+                e.affecterPoste(std::stoi(champs[12]));
+            }
+
+            employes_.emplace(id, std::move(e));
+            if (id >= prochainId_) {
+                prochainId_ = id + 1;
+            }
+        } catch (const std::exception&) {
+            ++rejetees;
+            continue;
+        }
+    }
+    if (rejetees > 0) {
+        in.close();
+        std::error_code ec;
+        std::filesystem::copy_file(chemin, chemin + ".bak", std::filesystem::copy_options::overwrite_existing, ec);
+        std::cerr << "Attention : " << rejetees << " ligne(s) invalide(s) ignoree(s) dans " << chemin
+                  << " (copie de securite : " << chemin << ".bak)\n";
+    }
+}
+
+void GestionnaireEmployes::sauvegarderDansFichier(const std::string& chemin) const {
+    namespace fs = std::filesystem;
+    fs::path p(chemin);
+    if (p.has_parent_path() && !fs::exists(p.parent_path())) {
+        fs::create_directories(p.parent_path());
+    }
+
+    std::string cheminTmp = chemin + ".tmp";
+    std::ofstream out(cheminTmp);
+    if (!out.is_open()) {
+        throw std::runtime_error("Impossible d'ouvrir le fichier temporaire en ecriture : " + cheminTmp);
+    }
+
+    out << "#id;matricule;nom;prenom;cin;email;telephone;dateNaissance;dateEmbauche;statut;salaireBase;idDepartement;idPoste\n";
+    for (const auto& [id, e] : employes_) {
+        out << e.getId() << ';'
+            << e.getMatricule() << ';'
+            << e.getNom() << ';'
+            << e.getPrenom() << ';'
+            << e.getCin() << ';'
+            << e.getEmail() << ';'
+            << e.getTelephone() << ';'
+            << e.getDateNaissance().toString() << ';'
+            << e.getDateEmbauche().toString() << ';'
+            << e.getStatut() << ';'
+            << std::fixed << std::setprecision(2) << e.getSalaire().getSalaireBase() << std::defaultfloat << ';'
+            << e.getIdDepartement() << ';'
+            << e.getIdPoste() << '\n';
+    }
+
+    out.close();
+    if (!out) {
+        throw std::runtime_error("Erreur lors de l'ecriture du fichier : " + cheminTmp);
+    }
+
+    fs::rename(cheminTmp, chemin);
 }
