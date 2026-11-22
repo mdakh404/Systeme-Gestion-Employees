@@ -31,3 +31,26 @@ A service that calculates employees' retirement eligibility, theoretical retirem
 | `setRetirementAge`, `setMinimumYearsOfService`, `setPensionRate`, `setMaximumPensionRate` | Update the retirement rules | new value | `void` |
 | `display` | Print the retirement service configuration | none | console output |
 | `execute` | List employees, prompt for an employee ID, check retirement eligibility, and display the theoretical retirement date and estimated monthly pension when eligible | standard input | console output |
+
+### 3. Rewards program service `RewardsProgramService`
+
+A service that manages employee reward programs, points attribution ledger, rewards catalogue, and points redemption.
+
+| Function | Description | Input | Output |
+|---|---|---|---|
+| `RewardsProgramService(...)` | Initialize the service and load persisted reward data | `id`, `fournisseur`, `cheminFichier`, `dateReference` | `RewardsProgramService` instance |
+| `ajouterProgramme` | Create a new reward program with duration and points cap | `nom`, `description`, `type`, `pointsMax`, `dateDebut`, `dateFin` | `int` program id |
+| `modifierProgramme` | Update an existing reward program | `idProgramme`, `nom`, `description`, `type`, `pointsMax`, `dateDebut`, `dateFin` | `void` |
+| `desactiverProgramme`, `activerProgramme` | Activate or deactivate a reward program | `idProgramme` | `void` |
+| `trouverProgramme`, `programmes` | Search or list all reward programs | `idProgramme` / none | `const ProgrammeRecompense*`, `const vector<ProgrammeRecompense>&` |
+| `ajouterRecompense` | Add a new reward article to the catalogue | `nom`, `description`, `coutPoints`, `stock` | `int` reward id |
+| `modifierStock` | Update the stock of an existing reward article | `idRecompense`, `nouveauStock` | `void` |
+| `trouverRecompense`, `catalogue` | Search or list catalogue reward articles | `idRecompense` / none | `const Recompense*`, `const vector<Recompense>&` |
+| `attribuerPoints` | Award reward points to an employee under a program | `idEmploye`, `idProgramme`, `points`, `motif` | `int` attribution id |
+| `utiliserRecompense` | Redeem points for a catalogue article | `idEmploye`, `idRecompense` | `int` utilisation id |
+| `solde` | Calculate the current net points balance for an employee | `idEmploye` | `int` points |
+| `historique`, `utilisations` | Retrieve attribution history or redemption history for an employee | `idEmploye` | `vector<AttributionRecompense>`, `vector<UtilisationRecompense>` |
+| `statistiques`, `afficherStatistiques` | Compute and display global points and redemption stats | none | `StatistiquesRecompenses`, console output |
+| `charger`, `sauvegarder` | Persist or restore reward state from text ledger file | none | `void` |
+| `display` | Print the rewards program service configuration | none | console output |
+| `execute` | Interactive console menu for managing programs, rewards, and points | standard input | console output |
