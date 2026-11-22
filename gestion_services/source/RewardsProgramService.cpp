@@ -1,9 +1,7 @@
 #include "RewardsProgramService.h"
 
-#include "DateIso.h"
-#include "ValidationTexte.h"
-
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <ctime>
 #include <filesystem>
@@ -16,6 +14,68 @@
 #include <utility>
 
 namespace {
+
+constexpr int STOCK_MAXIMUM = 1000000;
+
+// --- Date & String validation helpers ---
+bool anneeBissextile(int annee) {
+    return (annee % 400 == 0) || (annee % 4 == 0 && annee % 100 != 0);
+}
+
+bool dateIsoValide(const std::string& date) {
+    if (date.size() != 10) return false;
+    if (date[4] != '-' || date[7] != '-') return false;
+
+    for (std::size_t i = 0; i < date.size(); ++i) {
+        if (i == 4 || i == 7) continue;
+        if (!std::isdigit(static_cast<unsigned char>(date[i]))) return false;
+    }
+
+    const int annee = std::stoi(date.substr(0, 4));
+    const int mois = std::stoi(date.substr(5, 2));
+    const int jour = std::stoi(date.substr(8, 2));
+
+    if (annee < 1900 || mois < 1 || mois > 12 || jour < 1) return false;
+
+    static const int joursMois[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int jourMaximum = joursMois[mois - 1];
+    if (mois == 2 && anneeBissextile(annee)) jourMaximum = 29;
+
+    return jour <= jourMaximum;
+}
+
+int comparerDates(const std::string& gauche, const std::string& droite) {
+    if (gauche < droite) return -1;
+    if (droite < gauche) return 1;
+    return 0;
+}
+
+bool contientSeparateur(const std::string& valeur) {
+    return valeur.find(';') != std::string::npos ||
+           valeur.find('\n') != std::string::npos ||
+           valeur.find('\r') != std::string::npos;
+}
+
+void verifierTexteObligatoire(const std::string& valeur, const std::string& champ) {
+    if (valeur.empty()) {
+        throw std::invalid_argument(champ + " ne doit pas etre vide.");
+    }
+    if (contientSeparateur(valeur)) {
+        throw std::invalid_argument(champ + " ne doit pas contenir ';' ni de saut de ligne.");
+    }
+    if (valeur.size() > 200) {
+        throw std::invalid_argument(champ + " est trop long (200 caracteres maximum).");
+    }
+}
+
+void verifierTexteOptionnel(const std::string& valeur, const std::string& champ) {
+    if (contientSeparateur(valeur)) {
+        throw std::invalid_argument(champ + " ne doit pas contenir ';' ni de saut de ligne.");
+    }
+    if (valeur.size() > 200) {
+        throw std::invalid_argument(champ + " est trop long (200 caracteres maximum).");
+    }
+}
 
 std::string champ(std::istringstream& flux) {
     std::string valeur;
@@ -54,6 +114,205 @@ bool lireEntier(const std::string& invite, int& sortie) {
 
 } // namespace
 
+// ---------------------------------------------------------------------------
+// TypeProgramme
+// ---------------------------------------------------------------------------
+
+std::string toString(TypeProgramme type) {
+    switch (type) {
+        case TypeProgramme::Performance:    return "performance";
+        case TypeProgramme::Fidelite:       return "fidelite";
+        case TypeProgramme::Reconnaissance: return "reconnaissance";
+    }
+    return "performance";
+}
+
+TypeProgramme typeDepuisTexte(const std::string& texte) {
+    if (texte == "performance")    return TypeProgramme::Performance;
+    if (texte == "fidelite")       return TypeProgramme::Fidelite;
+    if (texte == "reconnaissance") return TypeProgramme::Reconnaissance;
+    throw std::invalid_argument("Type de programme inconnu : " + texte);
+}
+
+// ---------------------------------------------------------------------------
+// ProgrammeRecompense
+// ---------------------------------------------------------------------------
+
+ProgrammeRecompense::ProgrammeRecompense(int id,
+                                         std::string nom,
+                                         std::string description,
+                                         TypeProgramme type,
+                                         int pointsMaxParAttribution,
+                                         std::string dateDebut,
+                                         std::string dateFin,
+                                         bool actif)
+    : id_(id),
+      nom_(std::move(nom)),
+      description_(std::move(description)),
+      type_(type),
+      pointsMaxParAttribution_(pointsMaxParAttribution),
+      dateDebut_(std::move(dateDebut)),
+      dateFin_(std::move(dateFin)),
+      actif_(actif) {
+    if (id_ <= 0) {
+        throw std::invalid_argument("Identifiant de programme invalide.");
+    }
+    verifierTexteObligatoire(nom_, "nom du programme");
+    verifierTexteOptionnel(description_, "description du programme");
+    if (pointsMaxParAttribution_ <= 0) {
+        throw std::invalid_argument("Le maximum de points doit etre strictement positif.");
+    }
+    validerPeriode();
+}
+
+void ProgrammeRecompense::validerPeriode() const {
+    if (!dateIsoValide(dateDebut_)) {
+        throw std::invalid_argument("Date de debut invalide (format attendu : AAAA-MM-JJ).");
+    }
+    if (dateFin_.empty()) return;
+    if (!dateIsoValide(dateFin_)) {
+        throw std::invalid_argument("Date de fin invalide (format attendu : AAAA-MM-JJ).");
+    }
+    if (comparerDates(dateDebut_, dateFin_) > 0) {
+        throw std::invalid_argument("La date de fin precede la date de debut.");
+    }
+}
+
+void ProgrammeRecompense::setNom(const std::string& nom) {
+    verifierTexteObligatoire(nom, "nom du programme");
+    nom_ = nom;
+}
+
+void ProgrammeRecompense::setDescription(const std::string& description) {
+    verifierTexteOptionnel(description, "description du programme");
+    description_ = description;
+}
+
+void ProgrammeRecompense::setType(TypeProgramme type) {
+    type_ = type;
+}
+
+void ProgrammeRecompense::setPointsMaxParAttribution(int points) {
+    if (points <= 0) {
+        throw std::invalid_argument("Le maximum de points doit etre strictement positif.");
+    }
+    pointsMaxParAttribution_ = points;
+}
+
+void ProgrammeRecompense::setPeriode(const std::string& dateDebut, const std::string& dateFin) {
+    const std::string ancienneDebut = dateDebut_;
+    const std::string ancienneFin = dateFin_;
+    dateDebut_ = dateDebut;
+    dateFin_ = dateFin;
+    try {
+        validerPeriode();
+    } catch (...) {
+        dateDebut_ = ancienneDebut;
+        dateFin_ = ancienneFin;
+        throw;
+    }
+}
+
+bool ProgrammeRecompense::estDisponible(const std::string& date) const {
+    if (!actif_) return false;
+    if (!dateIsoValide(date)) {
+        throw std::invalid_argument("Date de reference invalide (format attendu : AAAA-MM-JJ).");
+    }
+    if (comparerDates(date, dateDebut_) < 0) return false;
+    if (!dateFin_.empty() && comparerDates(date, dateFin_) > 0) return false;
+    return true;
+}
+
+void ProgrammeRecompense::afficher() const {
+    std::cout << "  #" << id_ << " - " << nom_
+              << " [" << toString(type_) << "]"
+              << (actif_ ? "" : " (desactive)") << "\n"
+              << "      " << (description_.empty() ? "(sans description)" : description_) << "\n"
+              << "      Points max / attribution : " << pointsMaxParAttribution_ << "\n"
+              << "      Periode : " << dateDebut_ << " -> "
+              << (dateFin_.empty() ? "illimitee" : dateFin_) << "\n";
+}
+
+// ---------------------------------------------------------------------------
+// Recompense
+// ---------------------------------------------------------------------------
+
+Recompense::Recompense(int id,
+                       std::string nom,
+                       std::string description,
+                       int coutPoints,
+                       int stock)
+    : id_(id),
+      nom_(std::move(nom)),
+      description_(std::move(description)),
+      coutPoints_(coutPoints),
+      stock_(stock) {
+    if (id_ <= 0) {
+        throw std::invalid_argument("Identifiant de recompense invalide.");
+    }
+    verifierTexteObligatoire(nom_, "nom de la recompense");
+    verifierTexteOptionnel(description_, "description de la recompense");
+    if (coutPoints_ <= 0) {
+        throw std::invalid_argument("Le cout en points doit etre strictement positif.");
+    }
+    if (stock_ < 0 || stock_ > STOCK_MAXIMUM) {
+        throw std::invalid_argument("Stock invalide.");
+    }
+}
+
+void Recompense::setNom(const std::string& nom) {
+    verifierTexteObligatoire(nom, "nom de la recompense");
+    nom_ = nom;
+}
+
+void Recompense::setDescription(const std::string& description) {
+    verifierTexteOptionnel(description, "description de la recompense");
+    description_ = description;
+}
+
+void Recompense::setCoutPoints(int coutPoints) {
+    if (coutPoints <= 0) {
+        throw std::invalid_argument("Le cout en points doit etre strictement positif.");
+    }
+    coutPoints_ = coutPoints;
+}
+
+void Recompense::setStock(int stock) {
+    if (stock < 0 || stock > STOCK_MAXIMUM) {
+        throw std::invalid_argument("Stock invalide.");
+    }
+    stock_ = stock;
+}
+
+void Recompense::retirerDuStock() {
+    if (stock_ <= 0) {
+        throw std::invalid_argument("Recompense en rupture de stock.");
+    }
+    --stock_;
+}
+
+void Recompense::reapprovisionner(int quantite) {
+    if (quantite <= 0) {
+        throw std::invalid_argument("La quantite de reapprovisionnement doit etre positive.");
+    }
+    if (stock_ + quantite > STOCK_MAXIMUM) {
+        throw std::invalid_argument("Le stock depasserait le maximum autorise.");
+    }
+    stock_ += quantite;
+}
+
+void Recompense::afficher() const {
+    std::cout << "  #" << id_ << " - " << nom_
+              << " (" << coutPoints_ << " points)"
+              << (estDisponible() ? "" : " [rupture de stock]") << "\n"
+              << "      " << (description_.empty() ? "(sans description)" : description_) << "\n"
+              << "      Stock : " << stock_ << "\n";
+}
+
+// ---------------------------------------------------------------------------
+// RewardsProgramService
+// ---------------------------------------------------------------------------
+
 RewardsProgramService::RewardsProgramService(int id,
                                              FournisseurEmployes fournisseur,
                                              std::string cheminFichier,
@@ -67,15 +326,13 @@ RewardsProgramService::RewardsProgramService(int id,
     if (id <= 0) {
         throw std::invalid_argument("Identifiant de service invalide.");
     }
-    if (!dateReference_.empty() && !rewards::dateIsoValide(dateReference_)) {
+    if (!dateReference_.empty() && !dateIsoValide(dateReference_)) {
         throw std::invalid_argument("Date de reference invalide (format attendu : AAAA-MM-JJ).");
     }
     charger();
 }
 
-// ---------------------------------------------------------------------------
-// Programmes
-// ---------------------------------------------------------------------------
+// --- Programmes ---
 
 int RewardsProgramService::ajouterProgramme(const std::string& nom,
                                             const std::string& description,
@@ -129,9 +386,7 @@ ProgrammeRecompense& RewardsProgramService::programmeModifiable(int idProgramme)
     throw std::invalid_argument("Programme introuvable (id = " + std::to_string(idProgramme) + ").");
 }
 
-// ---------------------------------------------------------------------------
-// Catalogue
-// ---------------------------------------------------------------------------
+// --- Catalogue ---
 
 int RewardsProgramService::ajouterRecompense(const std::string& nom,
                                              const std::string& description,
@@ -163,9 +418,7 @@ Recompense& RewardsProgramService::recompenseModifiable(int idRecompense) {
     throw std::invalid_argument("Recompense introuvable (id = " + std::to_string(idRecompense) + ").");
 }
 
-// ---------------------------------------------------------------------------
-// Attribution / utilisation
-// ---------------------------------------------------------------------------
+// --- Attribution / utilisation ---
 
 void RewardsProgramService::verifierEmploye(int idEmploye) const {
     if (idEmploye <= 0) {
@@ -202,7 +455,7 @@ int RewardsProgramService::attribuerPoints(int idEmploye,
         throw std::invalid_argument("Le nombre de points depasse le maximum du programme.");
     }
 
-    rewards::verifierTexteObligatoire(motif, "motif");
+    verifierTexteObligatoire(motif, "motif");
 
     for (const auto& attribution : attributions_) {
         if (attribution.idEmploye == idEmploye &&
@@ -253,9 +506,7 @@ int RewardsProgramService::utiliserRecompense(int idEmploye, int idRecompense) {
     return utilisation.id;
 }
 
-// ---------------------------------------------------------------------------
-// Consultation
-// ---------------------------------------------------------------------------
+// --- Consultation ---
 
 int RewardsProgramService::solde(int idEmploye) const {
     if (idEmploye <= 0) {
@@ -372,9 +623,7 @@ void RewardsProgramService::afficherStatistiques() const {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Persistance
-// ---------------------------------------------------------------------------
+// --- Persistance ---
 
 std::string RewardsProgramService::dateDuJour() const {
     if (!dateReference_.empty()) return dateReference_;
@@ -558,9 +807,7 @@ void RewardsProgramService::sauvegarder() const {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Interface Service
-// ---------------------------------------------------------------------------
+// --- Interface Service ---
 
 void RewardsProgramService::display() const {
     int actifs = 0;
