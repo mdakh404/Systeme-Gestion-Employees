@@ -1,0 +1,10 @@
+*.exe
+*.o
+*.csv
+*.tmp
+bin/
+obj/
+*.cbp
+*.layout
+data/
+*.dll
