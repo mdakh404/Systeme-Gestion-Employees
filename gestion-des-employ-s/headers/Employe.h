@@ -50,8 +50,8 @@ public:
     int getIdDepartement() const { return idDepartement_; }
     int getIdPoste() const { return idPoste_; }
     const Salaire& getSalaire() const { return salaire_; }
-    Salaire& getSalaire() { return salaire_; }
 
     // Surcharge d'operateur : deux employes sont egaux s'ils ont le meme id
     bool operator==(const Employe& o) const { return id_ == o.id_; }
+    bool operator!=(const Employe& o) const { return !(*this == o); }
 };

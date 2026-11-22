@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include <stdexcept>
 #include <vector>
 
@@ -11,14 +12,18 @@ class Salaire {
     std::vector<double> historique_;
 public:
     Salaire() = default;
-    explicit Salaire(double base) { setSalaireBase(base); }
+    explicit Salaire(double base) : salaireBase_(base) {
+        if (!std::isfinite(base) || base < 0)
+            throw std::invalid_argument("salaire de base invalide");
+    }
 
     double getSalaireBase() const { return salaireBase_; }
     double getPrimeAnciennete() const { return primeAnciennete_; }
     const std::vector<double>& getHistorique() const { return historique_; }
 
     void setSalaireBase(double b) {
-        if (b < 0) throw std::invalid_argument("salaire de base negatif");
+        if (!std::isfinite(b) || b < 0)
+            throw std::invalid_argument("salaire de base invalide");
         if (salaireBase_ != b) historique_.push_back(salaireBase_);
         salaireBase_ = b;
     }

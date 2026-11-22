@@ -33,3 +33,27 @@ public:
         : ExceptionEmploye(joindre(e)), erreurs_(e) {}
     const std::vector<std::string>& erreurs() const { return erreurs_; }
 };
+
+class ExceptionDepartement : public std::runtime_error {
+public:
+    explicit ExceptionDepartement(const std::string& msg) : std::runtime_error(msg) {}
+};
+
+class DepartementIntrouvable : public ExceptionDepartement {
+public:
+    explicit DepartementIntrouvable(int id)
+        : ExceptionDepartement("Departement introuvable (id = " + std::to_string(id) + ")") {}
+};
+
+class DepartementExistant : public ExceptionDepartement {
+public:
+    explicit DepartementExistant(const std::string& nom)
+        : ExceptionDepartement("Un departement avec ce nom existe deja: " + nom) {}
+};
+
+class DepartementUtilise : public ExceptionDepartement {
+public:
+    explicit DepartementUtilise(int id)
+        : ExceptionDepartement("Impossible de supprimer un departement affecte (id = " +
+                               std::to_string(id) + ")") {}
+};

@@ -23,6 +23,7 @@ public:
     void setDescription(const std::string& description);   // throws DonneesInvalides
 
     bool operator==(const Departement& o) const { return id_ == o.id_; }
+    bool operator!=(const Departement& o) const { return !(*this == o); }
 
     static constexpr std::size_t DESCRIPTION_MAX = 200;
 };

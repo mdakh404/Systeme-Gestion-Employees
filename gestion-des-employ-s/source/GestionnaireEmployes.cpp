@@ -23,6 +23,10 @@ std::string enMinuscules(std::string texte) {
 
 } // namespace
 
+GestionnaireEmployes::GestionnaireEmployes(
+    const GestionnaireDepartements& gestionnaireDepartements)
+    : gestionnaireDepartements_(gestionnaireDepartements) {}
+
 std::string GestionnaireEmployes::fabriquerMatricule(int id) {
     std::ostringstream os;
     os << "EMP" << std::setfill('0') << std::setw(4) << id;
@@ -49,6 +53,11 @@ void GestionnaireEmployes::valider(const DonneesEmploye& d) const {
     bool embaucheOk = d.dateEmbauche.estValide();
     if (!naissanceOk) err.push_back("date de naissance invalide");
     if (!embaucheOk) err.push_back("date d'embauche invalide");
+    const Date aujourdHui = Date::aujourdhui();
+    if (naissanceOk && aujourdHui < d.dateNaissance)
+        err.push_back("date de naissance dans le futur");
+    if (embaucheOk && aujourdHui < d.dateEmbauche)
+        err.push_back("date d'embauche dans le futur");
     // anneesEntre() renvoie 0 si l'embauche precede la naissance => refuse aussi
     if (naissanceOk && embaucheOk &&
         Date::anneesEntre(d.dateNaissance, d.dateEmbauche) < AGE_MIN_EMBAUCHE)
@@ -78,7 +87,7 @@ int GestionnaireEmployes::ajouter(const DonneesEmploye& d) {
 }
 
 void GestionnaireEmployes::modifier(int id, const DonneesEmploye& d) {
-    Employe& e = trouver(id);
+    Employe& e = trouverInterne(id);
     valider(d);
     verifierCinUnique(d.cin, id);
 
@@ -92,44 +101,54 @@ void GestionnaireEmployes::supprimer(int id) {
     employes_.erase(it);
 }
 
-const Employe* GestionnaireEmployes::rechercher(int id) const {
+std::optional<Employe> GestionnaireEmployes::rechercher(int id) const {
     auto it = employes_.find(id);
-    return it == employes_.end() ? nullptr : &it->second;
+    if (it == employes_.end()) return std::nullopt;
+    return it->second;
 }
 
-Employe& GestionnaireEmployes::trouver(int id) {
+Employe GestionnaireEmployes::trouver(int id) const {
     auto it = employes_.find(id);
     if (it == employes_.end()) throw EmployeIntrouvable(id);
     return it->second;
 }
 
-std::vector<const Employe*> GestionnaireEmployes::rechercherParNom(const std::string& motif) const {
-    std::vector<const Employe*> res;
+Employe& GestionnaireEmployes::trouverInterne(int id) {
+    auto it = employes_.find(id);
+    if (it == employes_.end()) throw EmployeIntrouvable(id);
+    return it->second;
+}
+
+std::vector<Employe> GestionnaireEmployes::rechercherParNom(const std::string& motif) const {
+    std::vector<Employe> res;
     const std::string m = enMinuscules(motif);
     for (const auto& [id, e] : employes_) {
         if (enMinuscules(e.getNom()).find(m) != std::string::npos ||
             enMinuscules(e.getPrenom()).find(m) != std::string::npos)
-            res.push_back(&e);
+            res.push_back(e);
     }
     return res;
 }
 
-const Employe* GestionnaireEmployes::rechercherParCin(const std::string& cin) const {
+std::optional<Employe> GestionnaireEmployes::rechercherParCin(const std::string& cin) const {
     auto it = std::find_if(employes_.begin(), employes_.end(), [&](const auto& p) {
         return p.second.getCin() == cin;
     });
-    return it == employes_.end() ? nullptr : &it->second;
+    if (it == employes_.end()) return std::nullopt;
+    return it->second;
 }
 
-const Employe* GestionnaireEmployes::rechercherParMatricule(const std::string& matricule) const {
+std::optional<Employe> GestionnaireEmployes::rechercherParMatricule(
+    const std::string& matricule) const {
     auto it = std::find_if(employes_.begin(), employes_.end(), [&](const auto& p) {
         return p.second.getMatricule() == matricule;
     });
-    return it == employes_.end() ? nullptr : &it->second;
+    if (it == employes_.end()) return std::nullopt;
+    return it->second;
 }
 
 void GestionnaireEmployes::modifierStatut(int id, const std::string& statut) {
-    Employe& e = trouver(id);
+    Employe& e = trouverInterne(id);
     if (!statutValide(statut))
         throw DonneesInvalides({"statut invalide (Actif, Inactif, En conge, Suspendu)"});
 
@@ -140,7 +159,7 @@ void GestionnaireEmployes::modifierStatut(int id, const std::string& statut) {
 
 void GestionnaireEmployes::modifierCoordonnees(int id, const std::string& email,
                                                const std::string& telephone) {
-    Employe& e = trouver(id);
+    Employe& e = trouverInterne(id);
 
     std::vector<std::string> erreurs;
     if (!Validation::emailValide(email)) erreurs.push_back("email invalide");
@@ -162,23 +181,25 @@ std::vector<Employe> GestionnaireEmployes::lister() const {
     return res;
 }
 
-const std::vector<std::string>& GestionnaireEmployes::historique(int id) const {
+std::vector<std::string> GestionnaireEmployes::historique(int id) const {
     auto it = employes_.find(id);
     if (it == employes_.end()) throw EmployeIntrouvable(id);
     return it->second.getHistorique();
 }
 
 void GestionnaireEmployes::affecterDepartement(int idEmploye, int idDepartement) {
-    Employe& e = trouver(idEmploye);
+    Employe& e = trouverInterne(idEmploye);
     if (idDepartement < 0)
         throw DonneesInvalides({"identifiant de departement invalide"});
+    if (idDepartement != 0 && !gestionnaireDepartements_.contient(idDepartement))
+        throw DepartementIntrouvable(idDepartement);
     e.affecterDepartement(idDepartement);
 }
 
-std::vector<const Employe*> GestionnaireEmployes::employesDuDepartement(int idDepartement) const {
-    std::vector<const Employe*> res;
+std::vector<Employe> GestionnaireEmployes::employesDuDepartement(int idDepartement) const {
+    std::vector<Employe> res;
     for (const auto& [id, e] : employes_)
-        if (e.getIdDepartement() == idDepartement) res.push_back(&e);
+        if (e.getIdDepartement() == idDepartement) res.push_back(e);
     return res;
 }
 

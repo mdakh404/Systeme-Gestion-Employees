@@ -4,5 +4,7 @@
 *.tmp
 bin/
 obj/
+build/
+cmake-build-*/
 *.cbp
 *.layout

@@ -9,6 +9,22 @@
 
 using namespace std;
 
+template <typename T>
+static bool lireValeur(const string& invite, T& valeur) {
+    while (true) {
+        cout << invite;
+        if (cin >> valeur) {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            return true;
+        }
+        if (cin.eof()) return false;
+
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Saisie invalide. Veuillez reessayer.\n";
+    }
+}
+
 // ==========================================
 // CONSTRUCTEUR
 // ==========================================
@@ -22,10 +38,7 @@ EspaceAdmin::EspaceAdmin(GestionnaireEmployes& g)
 // ==========================================
 
 void EspaceAdmin::menuAdmin() {
-
-    int choix;
-
-    do {
+    while (true) {
         cout << "\n========================================\n";
         cout << "        ESPACE ADMINISTRATEUR\n";
         cout << "========================================\n";
@@ -38,10 +51,8 @@ void EspaceAdmin::menuAdmin() {
         cout << "0. Retour\n";
         cout << "========================================\n";
 
-        cout << "Votre choix : ";
-        cin >> choix;
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        int choix;
+        if (!lireValeur("Votre choix : ", choix)) return;
 
         switch (choix) {
 
@@ -71,13 +82,13 @@ void EspaceAdmin::menuAdmin() {
 
             case 0:
                 cout << "\nRetour au menu principal.\n";
-                break;
+                return;
 
             default:
                 cout << "\nChoix invalide !\n";
         }
 
-    } while (choix != 0);
+    }
 }
 
 
@@ -120,10 +131,7 @@ void EspaceAdmin::ajouterEmploye() {
         donnees.dateNaissance = Date::fromString(naissance);
         donnees.dateEmbauche = Date::fromString(embauche);
 
-        cout << "Salaire de base : ";
-        cin >> donnees.salaireBase;
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        if (!lireValeur("Salaire de base : ", donnees.salaireBase)) return;
 
         donnees.statut = "Actif";
 
@@ -151,16 +159,13 @@ void EspaceAdmin::modifierEmploye() {
 
     cout << "\n========== MODIFIER UN EMPLOYE ==========\n";
 
-    cout << "Entrer l'identifiant de l'employe : ";
-    cin >> id;
-
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    if (!lireValeur("Entrer l'identifiant de l'employe : ", id)) return;
 
     try {
 
-        const Employe* employe = gestionnaire.rechercher(id);
+        const auto employe = gestionnaire.rechercher(id);
 
-        if (employe == nullptr) {
+        if (!employe) {
 
             cout << "\nEmploye introuvable !\n";
             return;
@@ -200,10 +205,7 @@ void EspaceAdmin::modifierEmploye() {
         donnees.dateNaissance = Date::fromString(naissance);
         donnees.dateEmbauche = Date::fromString(embauche);
 
-        cout << "Nouveau salaire de base : ";
-        cin >> donnees.salaireBase;
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        if (!lireValeur("Nouveau salaire de base : ", donnees.salaireBase)) return;
 
         cout << "Nouveau statut (Actif/Inactif) : ";
         getline(cin, donnees.statut);
@@ -232,14 +234,13 @@ void EspaceAdmin::supprimerEmploye() {
 
     cout << "\n========== SUPPRIMER UN EMPLOYE ==========\n";
 
-    cout << "Entrer l'identifiant de l'employe : ";
-    cin >> id;
+    if (!lireValeur("Entrer l'identifiant de l'employe : ", id)) return;
 
     try {
 
-        const Employe* employe = gestionnaire.rechercher(id);
+        const auto employe = gestionnaire.rechercher(id);
 
-        if (employe == nullptr) {
+        if (!employe) {
 
             cout << "\nEmploye introuvable !\n";
             return;
@@ -248,8 +249,8 @@ void EspaceAdmin::supprimerEmploye() {
         cout << "\nInformations de l'employe :\n";
         employe->afficherInfos();
 
-        cout << "\nVoulez-vous vraiment supprimer cet employe ? (O/N) : ";
-        cin >> confirmation;
+        if (!lireValeur("\nVoulez-vous vraiment supprimer cet employe ? (O/N) : ",
+                        confirmation)) return;
 
         if (confirmation == 'O' || confirmation == 'o') {
 
@@ -261,8 +262,6 @@ void EspaceAdmin::supprimerEmploye() {
 
             cout << "\nSuppression annulee.\n";
         }
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     }
     catch (const exception& e) {
@@ -288,8 +287,7 @@ void EspaceAdmin::rechercherEmploye() {
 
     try {
 
-        vector<const Employe*> resultats =
-            gestionnaire.rechercherParNom(nom);
+        vector<Employe> resultats = gestionnaire.rechercherParNom(nom);
 
         if (resultats.empty()) {
 
@@ -305,7 +303,7 @@ void EspaceAdmin::rechercherEmploye() {
             cout << "\n--------- EMPLOYE "
                  << i + 1 << " ---------\n";
 
-            resultats[i]->afficherInfos();
+            resultats[i].afficherInfos();
         }
 
     }
@@ -327,14 +325,13 @@ void EspaceAdmin::consulterEmploye() {
 
     cout << "\n========== CONSULTER UN EMPLOYE ==========\n";
 
-    cout << "Entrer l'identifiant de l'employe : ";
-    cin >> id;
+    if (!lireValeur("Entrer l'identifiant de l'employe : ", id)) return;
 
     try {
 
-        const Employe* employe = gestionnaire.rechercher(id);
+        const auto employe = gestionnaire.rechercher(id);
 
-        if (employe == nullptr) {
+        if (!employe) {
 
             cout << "\nEmploye introuvable !\n";
             return;
@@ -345,8 +342,6 @@ void EspaceAdmin::consulterEmploye() {
         employe->afficherInfos();
 
         cout << "\n==============================================\n";
-
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     }
     catch (const exception& e) {

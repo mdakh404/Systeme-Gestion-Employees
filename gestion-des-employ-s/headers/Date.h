@@ -15,6 +15,9 @@ struct Date {
     static int anneesEntre(const Date& debut, const Date& fin); // annees completes
 
     bool operator==(const Date& o) const;
+    bool operator!=(const Date& o) const { return !(*this == o); }
     bool operator<(const Date& o) const;
     bool operator<=(const Date& o) const { return *this < o || *this == o; }
+    bool operator>(const Date& o) const { return o < *this; }
+    bool operator>=(const Date& o) const { return !(*this < o); }
 };

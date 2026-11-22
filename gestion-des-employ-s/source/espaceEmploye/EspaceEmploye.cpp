@@ -20,8 +20,10 @@ static void titre(const std::string& t) {
     std::cout << "\n========== " << t << " ==========\n";
 }
 
-EspaceEmploye::EspaceEmploye(GestionnaireEmployes& gestion)
-    : gestion_(gestion) {}
+EspaceEmploye::EspaceEmploye(
+    GestionnaireEmployes& gestion,
+    const GestionnaireDepartements& gestionnaireDepartements)
+    : gestion_(gestion), gestionnaireDepartements_(gestionnaireDepartements) {}
 
 void EspaceEmploye::executer() {
     while (true) {
@@ -49,7 +51,7 @@ bool EspaceEmploye::connecter() {
         return false;
     }
 
-    const Employe* e = gestion_.rechercherParMatricule(identifiant);
+    auto e = gestion_.rechercherParMatricule(identifiant);
     if (!e) e = gestion_.rechercherParCin(identifiant);
     if (!e) {
         std::cout << "Aucun employe trouve. Acces refuse.\n";
@@ -66,10 +68,8 @@ void EspaceEmploye::deconnecter() {
     idConnecte_ = 0;
 }
 
-const Employe& EspaceEmploye::employeConnecte() const {
-    const Employe* e = gestion_.rechercher(idConnecte_);
-    if (!e) throw EmployeIntrouvable(idConnecte_);
-    return *e;
+Employe EspaceEmploye::employeConnecte() const {
+    return gestion_.trouver(idConnecte_);
 }
 
 void EspaceEmploye::afficherProfil() const {
@@ -106,7 +106,13 @@ void EspaceEmploye::afficherDepartement() const {
         std::cout << "  Vous n'etes affecte a aucun departement.\n";
         return;
     }
-    std::cout << "  Identifiant    : " << e.getIdDepartement() << "\n";
+    const auto departement = gestionnaireDepartements_.rechercher(e.getIdDepartement());
+    if (!departement) throw DepartementIntrouvable(e.getIdDepartement());
+    std::cout << "  Identifiant    : " << departement->getId() << "\n"
+              << "  Nom            : " << departement->getNom() << "\n"
+              << "  Description    : "
+              << (departement->getDescription().empty() ? "-" : departement->getDescription())
+              << "\n";
 }
 
 void EspaceEmploye::modifierCoordonnees() {

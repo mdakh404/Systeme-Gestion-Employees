@@ -11,12 +11,17 @@ bool sansSeparateur(const std::string& s) {
 
 bool nomValide(const std::string& s) {
     if (s.size() < 2 || s.size() > 50) return false;
+    bool contientLettre = false;
     for (char ch : s) {
         unsigned char c = static_cast<unsigned char>(ch);
-        // c >= 128 : octets UTF-8 (lettres accentuees)
-        if (!(std::isalpha(c) || c >= 128 || c == ' ' || c == '-' || c == '\'')) return false;
+        const bool lettre = std::isalpha(c) || c >= 128;
+        if (lettre) {
+            contientLettre = true;
+        } else if (c != ' ' && c != '-' && c != '\'') {
+            return false;
+        }
     }
-    return true;
+    return contientLettre;
 }
 
 bool nomDepartementValide(const std::string& s) {

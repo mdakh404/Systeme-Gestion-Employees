@@ -1,14 +1,16 @@
 #pragma once
 #include "GestionnaireEmployes.h"
+#include "GestionnaireDepartements.h"
 
 class EspaceEmploye {
     GestionnaireEmployes& gestion_;
+    const GestionnaireDepartements& gestionnaireDepartements_;
     int idConnecte_ = 0;
 
     bool connecter();
     void deconnecter();
 
-    const Employe& employeConnecte() const;
+    Employe employeConnecte() const;
 
     void afficherProfil() const;
     void afficherInfosPersonnelles() const;
@@ -18,7 +20,8 @@ class EspaceEmploye {
     void menuConnecte();
 
 public:
-    explicit EspaceEmploye(GestionnaireEmployes& gestion);
+    EspaceEmploye(GestionnaireEmployes& gestion,
+                  const GestionnaireDepartements& gestionnaireDepartements);
 
     void executer();
 };
