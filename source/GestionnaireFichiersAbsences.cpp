@@ -1,8 +1,10 @@
 #include "GestionnaireFichiersAbsences.h"
+#include "DbPersistence.h"
 
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -135,6 +137,18 @@ GestionnaireAbsences GestionnaireFichiersAbsences::chargerAbsences(
 GestionnaireAbsences GestionnaireFichiersAbsences::charger(
     std::vector<std::string>* lignesOriginales) const {
     GestionnaireAbsences gestionnaire;
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        auto lues = db::chargerAbsences();
+        for (auto& absence : lues.liste) {
+            try {
+                gestionnaire.restaurerAbsence(absence);
+            } catch (const std::exception& ex) {
+                std::cerr << "Absence " << absence.getId() << " ignoree : " << ex.what() << "\n";
+            }
+        }
+        gestionnaire.dernierIdAttribue = std::max(gestionnaire.dernierIdAttribue, lues.dernierId);
+        return gestionnaire;
+    }
     const int repere = lireRepere(cheminRepere(chemin));
     const auto statut = fs::symlink_status(chemin);
     if (statut.type() == fs::file_type::not_found) {
@@ -216,6 +230,10 @@ void GestionnaireFichiersAbsences::sauvegarderSuppression(
 void GestionnaireFichiersAbsences::sauvegarder(
     const GestionnaireAbsences& gestionnaire, const GestionnaireAbsences* etatInitial,
     int idSupprime) const {
+    if (Database::instance().estConnectee()) {   // mode MySQL : transaction tout ou rien
+        db::sauvegarderAbsences(gestionnaire.consulterAbsences(), idSupprime);
+        return;
+    }
     const auto& comparaison = etatInitial ? *etatInitial : gestionnaire;
     const auto& absences = gestionnaire.consulterAbsences();
     for (const auto& absence : absences) {

@@ -1,5 +1,6 @@
 #include "GestionnaireFichiersDemandes.h"
 #include "ExceptionsDemandes.h"
+#include "DbPersistence.h"
 #include <fstream>
 #include <sstream>
 
@@ -26,6 +27,7 @@ GestionnaireFichiersDemandes::GestionnaireFichiersDemandes(const std::string& ch
     : chemin_(chemin) {}
 
 std::vector<DemandeAdministrative> GestionnaireFichiersDemandes::lireDemandes() const {
+    if (Database::instance().estConnectee()) return db::lireDemandes();   // mode MySQL
     std::vector<DemandeAdministrative> res;
     std::ifstream in(chemin_);
     if (!in) return res;   // fichier absent : liste vide, sera cree a la premiere ecriture
@@ -54,6 +56,11 @@ std::vector<DemandeAdministrative> GestionnaireFichiersDemandes::lireDemandes() 
 
 void GestionnaireFichiersDemandes::ecrireDemandes(
     const std::vector<DemandeAdministrative>& demandes) const {
+
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        db::ecrireDemandes(demandes);
+        return;
+    }
 
 #ifdef _WIN32
     // Creation du dossier data/ sous Windows

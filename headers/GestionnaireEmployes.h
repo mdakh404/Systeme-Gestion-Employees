@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include "Employe.h"
@@ -9,6 +10,9 @@
 class GestionnaireEmployes {
     std::map<int, Employe> employes_;
     int prochainId_ = 1;
+    // Identifiants connus de la base (charges ou enregistres) : sert a desactiver, sans suppression
+    // physique, les employes retires de la memoire.
+    mutable std::set<int> idsBD_;
 
     static constexpr int AGE_MIN_EMBAUCHE = 18;   // regle metier modifiable
 
@@ -41,4 +45,9 @@ public:
     // Persistance sur fichier
     void chargerDepuisFichier(const std::string& chemin = "data/employes.txt");
     void sauvegarderDansFichier(const std::string& chemin = "data/employes.txt") const;
+
+    // Persistance MySQL (utilisee automatiquement par les deux fonctions ci-dessus quand la
+    // connexion est active). Implementation : source/GestionnaireEmployesBD.cpp
+    void chargerDepuisBD();
+    void sauvegarderDansBD() const;
 };
