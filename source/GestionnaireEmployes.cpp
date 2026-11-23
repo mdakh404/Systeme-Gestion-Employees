@@ -1,6 +1,7 @@
 #include "GestionnaireEmployes.h"
 #include "Exceptions.h"
 #include "Validation.h"
+#include "Database.h"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -193,6 +194,10 @@ std::size_t GestionnaireEmployes::effectifDepartement(int idDepartement) const {
 }
 
 void GestionnaireEmployes::chargerDepuisFichier(const std::string& chemin) {
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        chargerDepuisBD();
+        return;
+    }
     std::ifstream in(chemin);
     if (!in.is_open()) return;
 
@@ -255,6 +260,10 @@ void GestionnaireEmployes::chargerDepuisFichier(const std::string& chemin) {
 }
 
 void GestionnaireEmployes::sauvegarderDansFichier(const std::string& chemin) const {
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        sauvegarderDansBD();
+        return;
+    }
     namespace fs = std::filesystem;
     fs::path p(chemin);
     if (p.has_parent_path() && !fs::exists(p.parent_path())) {

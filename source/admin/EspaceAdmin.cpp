@@ -159,7 +159,12 @@ void EspaceAdmin::ajouterEmploye() {
         donnees.statut = "Actif";
 
         int id = gestionnaire.ajouter(donnees);
-        gestionnaire.sauvegarderDansFichier();
+        try {
+            gestionnaire.sauvegarderDansFichier();
+        } catch (...) {
+            gestionnaire.supprimer(id);   // la base a refuse l'employe : on annule l'ajout en memoire
+            throw;
+        }
 
         cout << "\nEmploye ajoute avec succes !\n";
         cout << "Identifiant de l'employe : " << id << endl;

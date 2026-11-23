@@ -1,4 +1,6 @@
 #include "TrainingService.h"
+#include "DbPersistence.h"
+#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -92,6 +94,28 @@ double TrainingService::getTotalCost() const {
 
 
 void TrainingService::saveToFile(const std::string& filename) const {
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        Database& base = Database::instance();
+        Transaction tx(base);
+        base.executer("DELETE FROM inscription_formation");
+        base.executer("DELETE FROM formation");
+        for (const auto& t : trainings) {
+            std::ostringstream prix;
+            prix << std::fixed << std::setprecision(2) << t.price;
+            base.executer("INSERT INTO formation (id, titre, type_formation, prix, duree_heures, "
+                          "date_debut) VALUES (" + std::to_string(t.id) + ", " + db::q(t.title) + ", "
+                          + db::q(t.type) + ", " + prix.str() + ", " + std::to_string(t.durationHours)
+                          + ", " + db::q(t.startDate) + ")");
+        }
+        // Les inscriptions d'employes absents de la base sont ignorees (cle etrangere).
+        for (const auto& entry : enrollments)
+            for (int tid : entry.second)
+                base.executer("INSERT IGNORE INTO inscription_formation (employe_id, formation_id) "
+                              "SELECT id, " + std::to_string(tid) + " FROM employe WHERE id = "
+                              + std::to_string(entry.first));
+        tx.commit();
+        return;
+    }
     std::ofstream out(filename);
     if (!out) throw std::runtime_error("Cannot write " + filename);
     for (const auto& t : trainings)
@@ -102,6 +126,24 @@ void TrainingService::saveToFile(const std::string& filename) const {
 }
 
 void TrainingService::loadFromFile(const std::string& filename) {
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        Database& base = Database::instance();
+        auto formations = base.requete(
+            "SELECT id, titre, type_formation, prix, duree_heures, date_debut FROM formation "
+            "ORDER BY id");
+        auto inscriptions = base.requete(
+            "SELECT employe_id, formation_id FROM inscription_formation "
+            "ORDER BY employe_id, formation_id");
+        trainings.clear(); enrollments.clear(); nextTrainingId = 1;
+        for (const auto& l : formations) {
+            Training t{std::stoi(*l[0]), *l[1], *l[2], std::stod(*l[3]), std::stoi(*l[4]),
+                       l[5] ? *l[5] : std::string()};
+            trainings.push_back(t);
+            nextTrainingId = std::max(nextTrainingId, t.id + 1);
+        }
+        for (const auto& l : inscriptions) enrollments[std::stoi(*l[0])].push_back(std::stoi(*l[1]));
+        return;
+    }
     std::ifstream in(filename);
     if (!in) return; 
     trainings.clear(); enrollments.clear(); nextTrainingId = 1;

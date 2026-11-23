@@ -13,12 +13,21 @@
 #include "RetirementService.h"
 #include "TrainingService.h"
 #include "admin/EspaceAdmin.h"
+#include "Database.h"
 
 #include <exception>
 #include <iostream>
 #include <string>
 
 int main() {
+    // 0. Connexion MySQL (data/db.cfg ou variables EMS_DB_*). Sans base : mode fichiers data/*.txt
+    if (Database::instance().connecter()) {
+        std::cout << "[BD] Connecte a MySQL : " << Database::instance().description() << "\n";
+    } else {
+        std::cout << "[BD] Base de donnees indisponible (" << Database::instance().derniereErreur()
+                  << ") -> mode fichiers data/*.txt\n";
+    }
+
     // 1. Instanciation des gestionnaires métier
     GestionnaireEmployes gestion;
     try {
@@ -110,6 +119,7 @@ int main() {
         std::cerr << "Erreur lors de la sauvegarde : " << ex.what() << "\n";
     }
 
+    Database::instance().deconnecter();
     std::cout << "\nFin du programme. Au revoir !\n";
     return 0;
 }

@@ -1,4 +1,5 @@
  #include "GestionnaireFichiersConge.h"
+#include "DbPersistence.h"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -61,6 +62,7 @@ Conge GestionnaireFichiersConge::deserialiserLigne(const std::string& ligne) con
 }
 
 std::vector<Conge> GestionnaireFichiersConge::chargerTousLesConges() const {
+    if (Database::instance().estConnectee()) return db::chargerConges();   // mode MySQL
     assurerExistenceDossierEtFichier();
     std::ifstream fichier(cheminFichier);
     if (!fichier.is_open()) {
@@ -79,6 +81,10 @@ std::vector<Conge> GestionnaireFichiersConge::chargerTousLesConges() const {
 }
 
 void GestionnaireFichiersConge::sauvegarderTousLesConges(const std::vector<Conge>& conges) const {
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        db::sauvegarderConges(conges);
+        return;
+    }
     assurerExistenceDossierEtFichier();
     std::ofstream fichier(cheminFichier, std::ios::trunc);
     if (!fichier.is_open()) {
@@ -92,6 +98,10 @@ void GestionnaireFichiersConge::sauvegarderTousLesConges(const std::vector<Conge
 }
 
 void GestionnaireFichiersConge::ajouterConge(const Conge& nouveauConge) const {
+    if (Database::instance().estConnectee()) {   // mode MySQL
+        db::ajouterConge(nouveauConge);
+        return;
+    }
     assurerExistenceDossierEtFichier();
     std::ofstream fichier(cheminFichier, std::ios::app);
     if (!fichier.is_open()) {
@@ -102,6 +112,7 @@ void GestionnaireFichiersConge::ajouterConge(const Conge& nouveauConge) const {
 }
 
 bool GestionnaireFichiersConge::mettreAJourStatut(int idConge, const std::string& nouveauStatut) const {
+    if (Database::instance().estConnectee()) return db::mettreAJourStatutConge(idConge, nouveauStatut);
     std::vector<Conge> tous = chargerTousLesConges();
     bool trouve = false;
 
